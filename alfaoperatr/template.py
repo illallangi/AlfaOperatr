@@ -146,6 +146,9 @@ class AlfaTemplateConsumer:
                   self.logger.error(f'HTTP POST {url} {item_post_response.status} {item_post}')
                   continue
                 item_post = await item_post_response.json()
+                if item_post['kind'] == 'Status' and item_post['status'] == 'Failure':
+                  self.logger.error(f'HTTP POST {url} failed: {item_post["message"]} {json.dumps(item_post)}')
+                  continue
                 self.logger.debug(f'HTTP POST {url} {item_post_response.status} {json.dumps(item_post)}')
                 if DEBUG_PATH:
                   with open(os.path.join(os.path.abspath(DEBUG_PATH), f'{item_post["metadata"].get("namespace","cluster")}-{item_post["metadata"]["name"]}-{item_post["kind"]}-{item_post["metadata"]["resourceVersion"]}.yaml'), 'w') as outfile:
