@@ -1,0 +1,85 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: alfatemplates.controllers.illallangi.enterprises
+spec:
+  group: controllers.illallangi.enterprises
+  names:
+    kind: AlfaTemplate
+    plural: alfatemplates
+    shortNames:
+    - alfatemplate
+    - at
+    singular: alfatemplate
+  scope: Cluster
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              template:
+                type: string
+              kinds:
+                items:
+                  type: string
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: alfa-system
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: alfaoperatr
+  namespace: alfa-system
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: alfaoperatr
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: alfaoperatr
+    namespace: alfa-system
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alfaoperatr
+  namespace: alfa-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: alfaoperatr
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: alfaoperatr
+    spec:
+      containers:
+        - name: operator
+          image: docker.io/illallangi/alfaoperatr:latest
+        - name: proxy
+          image: docker.io/bitnami/kubectl:1.18.0
+          args: ["proxy"]
+      serviceAccountName: alfaoperatr
