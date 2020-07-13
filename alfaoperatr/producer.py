@@ -40,6 +40,10 @@ class Producer:
         self.logger.info(f'Timed out, restarting at resourceVersion {self.resource_version}')
 
   async def handle_event(self, event):
-    self.logger.info(f'{event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]})')
+    if event["object"]["metadata"]["name"] in ["cert-manager-controller", "cert-manager-cainjector-leader-election-core", "cert-manager-cainjector-leader-election"]:
+      self.logger.debug(f'Ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]})')
+      return
+    self.logger.info(f'Handling {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]})')
     self.logger.debug(f'Received event {json.dumps(event)}')
+      
     await self.queue.put({'event': event})
