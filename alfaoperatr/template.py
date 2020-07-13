@@ -10,6 +10,8 @@ import yaml
 import six
 import jmespath
 import re
+from hashlib import sha256
+from more_itertools import one
 
 from netaddr import IPAddress
 from aiohttp import ClientSession
@@ -94,10 +96,13 @@ class AlfaTemplateConsumer:
   def get_jinja(self):
     j2environment = jinja2.Environment(loader=jinja2.BaseLoader, extensions=["jinja2_ansible_filters.AnsibleCoreFiltersExtension"])
     # add b64decode filter to jinja2 env
-    j2environment.filters["b64decode"] = base64.b64decode
+    j2environment.filters["b64decode"] = b64decode
     j2environment.filters["ipaddr"] = ipaddr
     j2environment.filters["json_query"] = json_query
+    j2environment.filters["json_query_list"] = json_query_list
+    j2environment.filters["json_query_one"] = json_query_one
     j2environment.filters["unique_dict"] = unique_dict
+    j2environment.filters["cheap_hash"] = cheap_hash
     j2environment.tests["is_subset"] = is_subset
     j2environment.tests["is_superset"] = is_superset
     return j2environment
@@ -129,16 +134,18 @@ class AlfaTemplateConsumer:
       return
 
     for render in renders:
+      if render is None or "kind" not in render:
+        continue
       try:
         url = URL(self.config[render["kind"]]["url"]).parent / URL(self.config[render["kind"]]["url"]).name / render["metadata"]["name"]
         if "namespace" in render["metadata"]:
           url = URL(self.config[render["kind"]]["url"]).parent / URL("namespaces").name / URL(render["metadata"]["namespace"]).name / URL(self.config[render["kind"]]["url"]).name / render["metadata"]["name"]
-        self.logger.info(f'Getting Render {url}')
+        self.logger.info(f'Getting {render["kind"]} {url}')
         async with self.session.request('get', url) as item_get_response:
           if item_get_response.status in [404]:
             url = url.parent
             try:
-              self.logger.info(f'Creating Render {url}')
+              self.logger.info(f'Creating {render["kind"]} {url}')
               self.logger.debug(f'HTTP POST {url}: {json.dumps(render)}')
               async with self.session.request('post', url, json=render) as item_post_response:
                 if item_post_response.headers.get('content-type') not in ['application/json'] or item_post_response.status in [404]:
@@ -155,7 +162,7 @@ class AlfaTemplateConsumer:
                     yaml.dump(item_post, outfile)
                 self.logger.info(f'Created {render["kind"]} {url / render["metadata"]["name"]}, resourceVersion {item_post["metadata"]["resourceVersion"]}')
             except Exception as e:
-              self.logger.error(f'Error Creating Render: {repr(e)}')
+              self.logger.error(f'Error Creating {render["kind"]}: {repr(e)}')
               continue
             
           else:
@@ -164,15 +171,36 @@ class AlfaTemplateConsumer:
               with open(os.path.join(os.path.abspath(DEBUG_PATH), f'{item_get["metadata"].get("namespace","cluster")}-{item_get["metadata"]["name"]}-{item_get["kind"]}-{item_get["metadata"]["resourceVersion"]}.yaml'), 'w') as outfile:
                 yaml.dump(item_get, outfile)
             render["metadata"]["resourceVersion"] = item_get["metadata"]["resourceVersion"]
+            
+            # Ugly hack to avoid race condition
+            if "deployment.kubernetes.io/revision" in item_get.get("metadata",{}).get("annotations",{}):
+              if "metadata" not in render:
+                render["metadata"] = {}
+              if "annotations" not in render["metadata"]:
+                render["metadata"]["annotations"] = {}
+              render["metadata"]["annotations"]["deployment.kubernetes.io/revision"] = item_get["metadata"]["annotations"]["deployment.kubernetes.io/revision"]
+
+            # Ugly hack to avoid race condition
+            if "clusterIP" in item_get.get("spec",{}):
+              if "spec" not in render:
+                render["spec"] = {}
+              render["spec"]["clusterIP"] = item_get["spec"]["clusterIP"]
+
             try:
-              self.logger.info(f'Updating Render {url}')
+              self.logger.info(f'Updating {render["kind"]} {url}')
               self.logger.debug(f'HTTP PUT {url}: {json.dumps(render)}')
               async with self.session.request('put', url, json=render) as item_put_response:
-                if item_put_response.status in [404]:
-                  self.logger.error(f'HTTP PUT response: {item_put_response.status}')
+                if item_put_response.headers.get('content-type') not in ['application/json'] or item_put_response.status in [404]:
+                  item_post = await item_put_response.text()
+                  self.logger.error(f'HTTP PUT {url} {item_put_response.status} {item_post}')
                   continue
                 item_put = await item_put_response.json()
-                if item_put["metadata"]["resourceVersion"] != item_get["metadata"]["resourceVersion"]:
+                if item_put['kind'] == 'Status' and item_put['status'] == 'Failure':
+                  self.logger.error(f'HTTP PUT {url} failed: {item_put["message"]} {json.dumps(item_put)}')
+                  continue
+                if "resourceVersion" not in item_put["metadata"] or \
+                   "resourceVersion" not in item_get["metadata"] or \
+                   item_put["metadata"].get("resourceVersion", None) != item_get["metadata"].get("resourceVersion", None):
                   if DEBUG_PATH:
                     with open(os.path.join(os.path.abspath(DEBUG_PATH), f'{item_put["metadata"].get("namespace","cluster")}-{item_put["metadata"]["name"]}-{item_put["kind"]}-{item_put["metadata"]["resourceVersion"]}.yaml'), 'w') as outfile:
                       yaml.dump(item_put, outfile)
@@ -180,7 +208,7 @@ class AlfaTemplateConsumer:
                 else:
                   self.logger.info(f'No change to {render["kind"]} {render["metadata"].get("namespace","cluster")}\{render["metadata"]["name"]}, resourceVersion still {item_get["metadata"]["resourceVersion"]}')
             except Exception as e:
-              self.logger.error(f'Error Updating Render: {repr(e)}')
+              self.logger.error(f'Error Updating {render["kind"]}: {repr(e)}')
               continue
       except Exception as e:
         self.logger.error(f'Error Getting Render: {repr(e)}')
@@ -196,13 +224,40 @@ def string_representer(dumper, value):
 yaml.Dumper.add_representer(six.text_type, string_representer)
 
 def json_query(v, f):
+  f = json_query_min(f)
   return jmespath.search(f, v)
+
+def json_query_list(v, f):
+  f = json_query_min(f)
+  return list(json_query(v, f))
+
+def json_query_one(v, f):
+  f = json_query_min(f)
+  l = json_query_list(v, f)
+  if len(l)!=1:
+    raise Exception(f'too many items in iterable (expected 1, received {len(l)} from {f})')
+  return one(l)
+
+def json_query_min(f):
+  return re.sub('[\r\n ]+',' ', f)
 
 def unique_dict(v):
   return list(yaml.load(y, Loader=yaml.FullLoader) for y in set(yaml.dump(d) for d in v))
 
 def is_superset(v, subset):
   return is_subset(subset, v)
+
+# https://gist.github.com/tobinquadros/1862543f719b72b57cf682918c99683c
+def b64decode(v):
+  return base64.b64decode(v).decode()
+
+# https://stackoverflow.com/posts/14023440/timeline#history_4c28e0a3-82ef-4080-9c59-11a95a097fee
+# cc by-sa 3.0
+def cheap_hash(string,length=6):
+  if length<len(sha256(string.encode('utf-8')).hexdigest()):
+    return sha256(string.encode('utf-8')).hexdigest()[:length]
+  else:
+    raise Exception("Length too long. Length of {y} when hash length is {x}.".format(x=str(len(sha256(string.encode('utf-8')).hexdigest())),y=length))
 
 # https://stackoverflow.com/posts/18335110/timeline
 # cc-by-sa 4.0
