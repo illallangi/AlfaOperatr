@@ -26,6 +26,9 @@ spec:
                 items:
                   type: string
                 type: array
+              update:
+                default: true
+                type: boolean
             required:
             - kinds
             - template

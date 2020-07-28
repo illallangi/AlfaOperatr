@@ -71,6 +71,7 @@ class AlfaTemplateConsumer:
     self.kinds = alfa_template["spec"]["kinds"]
     self.template = alfa_template["spec"]["template"]
     self.metadata = alfa_template["metadata"]
+    self.update = alfa_template["spec"]["update"]
 
   async def loop(self):
     while True:
@@ -171,6 +172,10 @@ class AlfaTemplateConsumer:
               with open(os.path.join(os.path.abspath(DEBUG_PATH), f'{item_get["metadata"].get("namespace","cluster")}-{item_get["metadata"]["name"]}-{item_get["kind"]}-{item_get["metadata"]["resourceVersion"]}.yaml'), 'w') as outfile:
                 yaml.dump(item_get, outfile)
             render["metadata"]["resourceVersion"] = item_get["metadata"]["resourceVersion"]
+            
+            if not self.update:
+              self.logger.info(f'Not updating as update set to false {render["kind"]} {url}')
+              continue
             
             # Ugly hack to avoid race condition
             if "deployment.kubernetes.io/revision" in item_get.get("metadata",{}).get("annotations",{}):
