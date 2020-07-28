@@ -18,7 +18,7 @@ from aiohttp import ClientSession
 
 from .log import Log
 from .config import Config
-from .producer import Producer
+from .producer import AlfaProducer
 
 class AlfaTemplate:
   def __init__(self, alfa_template, config, queue = None, session = None, logger = None):
@@ -26,7 +26,7 @@ class AlfaTemplate:
     self.config = config
     self.session = ClientSession() if session is None else session
     self.queue = Queue() if queue is None else queue
-    self.logger = Log.get_logger(f'{__name__}({alfa_template["metadata"]["selfLink"]})', self.config.log_level) if logger is None else logger
+    self.logger = Log.get_logger(f'AlfaTemplate({alfa_template["metadata"]["name"]})', self.config.log_level) if logger is None else logger
 
   async def loop(self):
     self.logger.info(f'loop starting')
@@ -42,8 +42,8 @@ class AlfaTemplate:
       config = self.config).loop()
 
     for kind in self.alfa_template["spec"]["kinds"]:
-      yield Producer(
-        url = self.config[kind]["url"],
+      yield AlfaProducer(
+        kind = kind,
         resource_version = None,
         session = self.session,
         queue = self.queue,
@@ -65,7 +65,7 @@ class AlfaTemplateConsumer:
     
     self.session = ClientSession() if session is None else session
     self.queue = Queue() if queue is None else queue
-    self.logger = Log.get_logger(f'{__name__}({alfa_template["metadata"]["name"]})', self.config.log_level) if logger is None else logger
+    self.logger = Log.get_logger(f'AlfaTemplateConsumer({alfa_template["metadata"]["name"]})', self.config.log_level) if logger is None else logger
 
   async def loop(self):
     while True:

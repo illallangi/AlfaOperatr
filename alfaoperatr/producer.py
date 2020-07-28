@@ -6,14 +6,14 @@ import json
 
 from .log import Log
 
-class Producer:
-  def __init__(self, url, config, session = None, resource_version = None, queue = None, logger = None):
-    self.url = url if isinstance(url, URL) else URL(url)
+class AlfaProducer:
+  def __init__(self, kind, config, session = None, resource_version = None, queue = None, logger = None):
+    self.kind = kind
     self.config = config
     self.resource_version = resource_version
     self.session = ClientSession() if session is None else session
     self.queue = Queue() if queue is None else queue
-    self.logger = Log.get_logger(f'{__name__}({self.url})', self.config.log_level) if logger is None else logger
+    self.logger = Log.get_logger(f'AlfaProducer({self.kind})', self.config.log_level) if logger is None else logger
 
   async def loop(self):
     while True:
@@ -21,7 +21,7 @@ class Producer:
         params = {'watch': 1}
         if self.resource_version != None:
           params['resourceVersion'] = self.resource_version
-        async with self.session.request('get', self.url.with_query(**params)) as response:
+        async with self.session.request('get', self.config[self.kind]["url"].with_query(**params)) as response:
           self.logger.info(f'Connected, {URL(response.url).query_string}')
           async for line in response.content:
             if line:

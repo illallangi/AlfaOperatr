@@ -3,14 +3,14 @@ from asyncio import Queue, get_event_loop, gather
 from json import dumps
 from .log import Log
 from .template import AlfaTemplate
-from .producer import Producer
+from .producer import AlfaProducer
 
 class AlfaController:
   def __init__(self, config, queue = None, session = None, logger = None):
     self.config = config
     self.session = ClientSession() if session is None else session
     self.queue = Queue() if queue is None else queue
-    self.logger = Log.get_logger(f'{__name__}()', self.config.log_level) if logger is None else logger
+    self.logger = Log.get_logger(f'AlfaController()', self.config.log_level) if logger is None else logger
 
   async def loop(self):
     self.logger.info(f'loop starting')
@@ -25,8 +25,8 @@ class AlfaController:
       config = self.config).loop()
 
     for kind in ["AlfaTemplate"]:
-      yield Producer(
-        url = self.config[kind]["url"],
+      yield AlfaProducer(
+        kind = kind,
         resource_version = None,
         session = self.session,
         queue = self.queue,
@@ -45,7 +45,7 @@ class AlfaControllerConsumer:
     self.config = config
     self.session = ClientSession() if session is None else session
     self.queue = Queue() if queue is None else queue
-    self.logger = Log.get_logger(f'{__name__}()', self.config.log_level) if logger is None else logger
+    self.logger = Log.get_logger(f'AlfaControllerConsumer()', self.config.log_level) if logger is None else logger
     self.controllers = {}
 
   async def loop(self):
