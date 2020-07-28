@@ -27,6 +27,7 @@ setuptools.setup(
       "jinja2",
       "jinja2_ansible_filters",
       "jmespath",
+      "more_itertools",
       "netaddr",
       "pyyaml",
       "requests",
