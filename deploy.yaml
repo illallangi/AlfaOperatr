@@ -26,7 +26,12 @@ spec:
                 items:
                   type: string
                 type: array
+            required:
+            - kinds
+            - template
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true
