@@ -40,6 +40,9 @@ class Producer:
         self.logger.info(f'Timed out, restarting at resourceVersion {self.resource_version}')
 
   async def handle_event(self, event):
+    if "name" not in event["object"]["metadata"].keys():
+      self.logger.warn(f'Ignoring event with no object.metadata.name: {json.dumps(event)}')
+      return
     if event["object"]["metadata"]["name"] in ["cert-manager-controller", "cert-manager-cainjector-leader-election-core", "cert-manager-cainjector-leader-election"]:
       self.logger.debug(f'Ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]})')
       return
