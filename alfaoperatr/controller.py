@@ -82,4 +82,4 @@ class AlfaControllerConsumer:
       get_event_loop().create_task(controller.loop())
       self.controllers[event["object"]["metadata"]["name"]] = controller
 
-    self.logger.info(f'{len(self.controllers)} AlfaTemplate object(s) in memory')
+    self.logger.info(f'{len(self.controllers)} AlfaTemplate object(s) in memory {self.controllers.keys()}')
