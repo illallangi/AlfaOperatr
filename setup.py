@@ -20,9 +20,10 @@ setuptools.setup(
   ],
   python_requires='>=3.6',
   entry_points = {
-    'console_scripts': ['alfaoperatr=alfaoperatr:AlfaOperator.loop'],
+    'console_scripts': ['alfaoperatr=alfaoperatr:__main__.main'],
   },
   install_requires=[
+      "Click",
       "aiohttp",
       "jinja2",
       "jinja2_ansible_filters",

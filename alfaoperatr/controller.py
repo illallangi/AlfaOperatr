@@ -1,22 +1,16 @@
 from aiohttp import ClientSession
 from asyncio import Queue, get_event_loop, gather
 from json import dumps
-from os import environ
-from re import compile as re_compile
-from .config import Config
 from .log import Log
 from .template import AlfaTemplate
 from .producer import Producer
 
-APP_FILTER      = re_compile(environ.get('APP_FILTER',      '.*'))
-TEMPLATE_FILTER = re_compile(environ.get('TEMPLATE_FILTER', '.*'))
-
 class AlfaController:
-  def __init__(self, queue = None, session = None, config = None, logger = None):
+  def __init__(self, config, queue = None, session = None, logger = None):
+    self.config = config
     self.session = ClientSession() if session is None else session
     self.queue = Queue() if queue is None else queue
-    self.config = Config() if config is None else config
-    self.logger = Log.get_logger(f'{__name__}()') if logger is None else logger
+    self.logger = Log.get_logger(f'{__name__}()', self.config.log_level) if logger is None else logger
 
   async def loop(self):
     self.logger.info(f'loop starting')
@@ -47,11 +41,11 @@ class AlfaController:
       self.logger.info(f'__del__ completed')
 
 class AlfaControllerConsumer:
-  def __init__(self, session = None, queue = None, config = None, logger = None):
+  def __init__(self, config, session = None, queue = None, logger = None):
+    self.config = config
     self.session = ClientSession() if session is None else session
     self.queue = Queue() if queue is None else queue
-    self.config = Config() if config is None else config
-    self.logger = Log.get_logger(f'{__name__}()') if logger is None else logger
+    self.logger = Log.get_logger(f'{__name__}()', self.config.log_level) if logger is None else logger
     self.controllers = {}
 
   async def loop(self):
@@ -62,12 +56,12 @@ class AlfaControllerConsumer:
 
   async def consume_event(self, event):
     self.logger.debug(f'Received event {dumps(event)}')
-    if not APP_FILTER.match(event["object"]["metadata"].get("labels",{}).get("app.kubernetes.io/name","")):
-      self.logger.info(f'Ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]}) - Filtered by APP_FILTER {APP_FILTER}')
+    if not self.config.app_filter.match(event["object"]["metadata"].get("labels",{}).get("app.kubernetes.io/name","")):
+      self.logger.info(f'Ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]}) - Filtered by app filter {self.config.app_filter}')
       return
 
-    if not TEMPLATE_FILTER.match(event["object"]["metadata"]["name"]):
-      self.logger.info(f'Ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]}) - Filtered by TEMPLATE_FILTER {TEMPLATE_FILTER}')
+    if not self.config.template_filter.match(event["object"]["metadata"]["name"]):
+      self.logger.info(f'Ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]}) - Filtered by template filter {self.config.template_filter}')
       return
 
     self.logger.info(f'Processing {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]})')

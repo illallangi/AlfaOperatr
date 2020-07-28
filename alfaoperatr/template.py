@@ -20,19 +20,13 @@ from .log import Log
 from .config import Config
 from .producer import Producer
 
-COOLDOWN       = int(os.environ.get('ALFA_COOLDOWN', 5))
-DEBUG_PATH     =     os.environ.get('DEBUG_PATH', None)
-
-if DEBUG_PATH:
-  os.makedirs(os.path.abspath(DEBUG_PATH), exist_ok=True)
-
 class AlfaTemplate:
-  def __init__(self, alfa_template, queue = None, session = None, config = None, logger = None):
+  def __init__(self, alfa_template, config, queue = None, session = None, logger = None):
+    self.alfa_template = alfa_template
+    self.config = config
     self.session = ClientSession() if session is None else session
     self.queue = Queue() if queue is None else queue
-    self.config = Config() if config is None else config
-    self.logger = Log.get_logger(f'{__name__}({alfa_template["metadata"]["selfLink"]})') if logger is None else logger
-    self.alfa_template = alfa_template
+    self.logger = Log.get_logger(f'{__name__}({alfa_template["metadata"]["selfLink"]})', self.config.log_level) if logger is None else logger
 
   async def loop(self):
     self.logger.info(f'loop starting')
@@ -62,23 +56,23 @@ class AlfaTemplate:
     self.logger.info(f'__del__ completed')
 
 class AlfaTemplateConsumer:
-  def __init__(self, alfa_template, session = None, queue = None, config = None, logger = None):
-    self.session = ClientSession() if session is None else session
-    self.queue = Queue() if queue is None else queue
-    self.config = Config() if config is None else config
-    self.logger = Log.get_logger(f'{__name__}({alfa_template["metadata"]["name"]})') if logger is None else logger
-    
+  def __init__(self, alfa_template, config, session = None, queue = None, logger = None):
     self.kinds = alfa_template["spec"]["kinds"]
     self.template = alfa_template["spec"]["template"]
     self.metadata = alfa_template["metadata"]
     self.update = alfa_template["spec"]["update"]
+    self.config = config
+    
+    self.session = ClientSession() if session is None else session
+    self.queue = Queue() if queue is None else queue
+    self.logger = Log.get_logger(f'{__name__}({alfa_template["metadata"]["name"]})', self.config.log_level) if logger is None else logger
 
   async def loop(self):
     while True:
       self.logger.info(f'Sleeping until next event')
       event = await self.queue.get()
-      self.logger.info(f'Consumer awaiting cooldown for {COOLDOWN} seconds')
-      await sleep(COOLDOWN)
+      self.logger.info(f'Consumer awaiting cooldown for {self.config.cooldown} seconds')
+      await sleep(self.config.cooldown)
       while not self.queue.empty():
         self.queue.get_nowait()
       await self.consume()
@@ -115,8 +109,8 @@ class AlfaTemplateConsumer:
       self.logger.info(f'Getting Items')
       items = list(await self.get_items())
       self.logger.info(f' - Retrieved {len(items)} Items')
-      if DEBUG_PATH:
-        with open(os.path.join(os.path.abspath(DEBUG_PATH), "alfatemplate-" + self.metadata["name"] + "-input.json"), 'w') as outfile:
+      if self.config.debug_path:
+        with open(os.path.join(self.config.debug_path, "alfatemplate-" + self.metadata["name"] + "-input.json"), 'w') as outfile:
           json.dump({'kinds': self.kinds, 'items': items, 'template': self.template, 'metadata': self.metadata}, outfile, indent=2)
     except Exception as e:
       self.logger.error(f'Error Getting Items: {repr(e)}')
@@ -127,8 +121,8 @@ class AlfaTemplateConsumer:
       j2result = j2environment.from_string(source=self.template).render(items=items, metadata=self.metadata)
       renders = list(yaml.load_all(j2result, Loader=yaml.FullLoader))
       self.logger.info(f' - Rendered {len(renders)} Items')
-      if DEBUG_PATH:
-        with open(os.path.join(os.path.abspath(DEBUG_PATH), "alfatemplate-" + self.metadata["name"] + "-result.yaml"), 'w') as outfile:
+      if self.config.debug_path:
+        with open(os.path.join(self.config.debug_path, "alfatemplate-" + self.metadata["name"] + "-result.yaml"), 'w') as outfile:
           outfile.write(j2result)
     except Exception as e:
       self.logger.error(f'Error Rendering Template: {repr(e)}')
@@ -158,8 +152,8 @@ class AlfaTemplateConsumer:
                   self.logger.error(f'HTTP POST {url} failed: {item_post["message"]} {json.dumps(item_post)}')
                   continue
                 self.logger.debug(f'HTTP POST {url} {item_post_response.status} {json.dumps(item_post)}')
-                if DEBUG_PATH:
-                  with open(os.path.join(os.path.abspath(DEBUG_PATH), f'{item_post["metadata"].get("namespace","cluster")}-{item_post["metadata"]["name"]}-{item_post["kind"]}-{item_post["metadata"]["resourceVersion"]}.yaml'), 'w') as outfile:
+                if self.config.debug_path:
+                  with open(os.path.join(self.config.debug_path, f'{item_post["metadata"].get("namespace","cluster")}-{item_post["metadata"]["name"]}-{item_post["kind"]}-{item_post["metadata"]["resourceVersion"]}.yaml'), 'w') as outfile:
                     yaml.dump(item_post, outfile)
                 self.logger.info(f'Created {render["kind"]} {url / render["metadata"]["name"]}, resourceVersion {item_post["metadata"]["resourceVersion"]}')
             except Exception as e:
@@ -168,8 +162,8 @@ class AlfaTemplateConsumer:
             
           else:
             item_get = await item_get_response.json()
-            if DEBUG_PATH:
-              with open(os.path.join(os.path.abspath(DEBUG_PATH), f'{item_get["metadata"].get("namespace","cluster")}-{item_get["metadata"]["name"]}-{item_get["kind"]}-{item_get["metadata"]["resourceVersion"]}.yaml'), 'w') as outfile:
+            if self.config.debug_path:
+              with open(os.path.join(self.config.debug_path, f'{item_get["metadata"].get("namespace","cluster")}-{item_get["metadata"]["name"]}-{item_get["kind"]}-{item_get["metadata"]["resourceVersion"]}.yaml'), 'w') as outfile:
                 yaml.dump(item_get, outfile)
             render["metadata"]["resourceVersion"] = item_get["metadata"]["resourceVersion"]
             
@@ -206,8 +200,8 @@ class AlfaTemplateConsumer:
                 if "resourceVersion" not in item_put["metadata"] or \
                    "resourceVersion" not in item_get["metadata"] or \
                    item_put["metadata"].get("resourceVersion", None) != item_get["metadata"].get("resourceVersion", None):
-                  if DEBUG_PATH:
-                    with open(os.path.join(os.path.abspath(DEBUG_PATH), f'{item_put["metadata"].get("namespace","cluster")}-{item_put["metadata"]["name"]}-{item_put["kind"]}-{item_put["metadata"]["resourceVersion"]}.yaml'), 'w') as outfile:
+                  if self.config.debug_path:
+                    with open(os.path.join(self.config.debug_path, f'{item_put["metadata"].get("namespace","cluster")}-{item_put["metadata"]["name"]}-{item_put["kind"]}-{item_put["metadata"]["resourceVersion"]}.yaml'), 'w') as outfile:
                       yaml.dump(item_put, outfile)
                   self.logger.info(f'Updated {render["kind"]} {render["metadata"].get("namespace","cluster")}\{render["metadata"]["name"]}, from resourceVersion {item_get["metadata"]["resourceVersion"]} to {item_put["metadata"]["resourceVersion"]}')
                 else:

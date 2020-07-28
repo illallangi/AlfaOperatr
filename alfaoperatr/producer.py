@@ -4,18 +4,16 @@ from asyncio import Queue, gather, sleep
 from asyncio.exceptions import TimeoutError
 import json
 
-from .config import Config
 from .log import Log
 
-
 class Producer:
-  def __init__(self, url, session = None, resource_version = None, queue = None, config = None, logger = None):
+  def __init__(self, url, config, session = None, resource_version = None, queue = None, logger = None):
     self.url = url if isinstance(url, URL) else URL(url)
+    self.config = config
     self.resource_version = resource_version
     self.session = ClientSession() if session is None else session
     self.queue = Queue() if queue is None else queue
-    self.config = Config() if config is None else config
-    self.logger = Log.get_logger(f'{__name__}({self.url})') if logger is None else logger
+    self.logger = Log.get_logger(f'{__name__}({self.url})', self.config.log_level) if logger is None else logger
 
   async def loop(self):
     while True:
