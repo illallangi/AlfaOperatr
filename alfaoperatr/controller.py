@@ -1,11 +1,15 @@
 from aiohttp import ClientSession
 from asyncio import Queue, get_event_loop, gather
 from json import dumps
-
+from os import environ
+from re import compile as re_compile
 from .config import Config
 from .log import Log
 from .template import AlfaTemplate
 from .producer import Producer
+
+APP_FILTER      = re_compile(environ.get('APP_FILTER',      '.*'))
+TEMPLATE_FILTER = re_compile(environ.get('TEMPLATE_FILTER', '.*'))
 
 class AlfaController:
   def __init__(self, queue = None, session = None, config = None, logger = None):
@@ -33,7 +37,7 @@ class AlfaController:
         session = self.session,
         queue = self.queue,
         config = self.config).loop()
-
+    
   def __del__(self):
     if hasattr(self, "logger"):
       self.logger.info(f'__del__ starting')
@@ -57,8 +61,17 @@ class AlfaControllerConsumer:
       await self.consume_event(queued['event'])
 
   async def consume_event(self, event):
-    self.logger.info(f'{event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]})')
     self.logger.debug(f'Received event {dumps(event)}')
+    if not APP_FILTER.match(event["object"]["metadata"].get("labels",{}).get("app.kubernetes.io/name","")):
+      self.logger.info(f'Ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]}) - Filtered by APP_FILTER {APP_FILTER}')
+      return
+
+    if not TEMPLATE_FILTER.match(event["object"]["metadata"]["name"]):
+      self.logger.info(f'Ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]}) - Filtered by TEMPLATE_FILTER {TEMPLATE_FILTER}')
+      return
+
+    self.logger.info(f'Processing {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]})')
+    
     if event["object"]["metadata"]["name"] in self.controllers.keys():
       self.logger.info(f'stopping existing AlfaTemplate({event["object"]["metadata"]["name"]})')
       self.controllers.pop(event["object"]["metadata"]["name"])
