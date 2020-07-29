@@ -15,7 +15,8 @@ class Config(Mapping):
                debug_path = None,
                log_level = 'INFO',
                logger = None,
-               template_filter = '.*'):
+               template_filter = '.*',
+               template_path = None):
     self.api_proxy =       api_proxy                                  if isinstance(api_proxy, URL) else URL(api_proxy)
     self.app_filter =      app_filter                                 if isinstance(app_filter, Pattern) else compile(app_filter)
     self.cooldown =        cooldown
@@ -23,11 +24,12 @@ class Config(Mapping):
     self.log_level =       log_level
     self.logger =          Log.get_logger(f'Config()', log_level) if logger is None else logger
     self.template_filter = template_filter                            if isinstance(template_filter, Pattern) else compile(template_filter)
-
-
+    self.template_path =   template_path
 
     if self.debug_path:
       makedirs(self.debug_path, exist_ok=True)
+
+
 
     self._kinds = dict({item['kind']:item for item in self._get_kinds()})
     with request('get', self._kinds["AlfaTemplate"]["url"]) as r:
@@ -41,7 +43,7 @@ class Config(Mapping):
               self.logger.error(f'AlfaTemplate "{ac["metadata"]["name"]}" refers to Kind "{kind}" that does not exist, will not monitor this kind. Did you mean "{maybe[0]}"?')
             continue
           self._kinds[kind]["templates"].append({"template": ac["spec"]["template"], "metadata": ac["metadata"]})
-
+    
   def __getitem__(self, k):
     return self._kinds.__getitem__(k)
 
