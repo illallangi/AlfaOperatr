@@ -50,7 +50,8 @@ class AlfaControllerConsumer:
 
   async def loop(self):
     while True:
-      self.logger.info(f'Sleeping until next event')
+      self.logger.info(f'{len(self.controllers)} AlfaTemplate object(s) in memory {self.controllers.keys()}')
+      self.logger.debug(f'Sleeping until next event')
       queued = await self.queue.get()
       await self.consume_event(queued['event'])
 
@@ -75,5 +76,3 @@ class AlfaControllerConsumer:
       controller = AlfaTemplate(event["object"], session = self.session, config=self.config)
       get_event_loop().create_task(controller.loop())
       self.controllers[event["object"]["metadata"]["name"]] = controller
-
-    self.logger.info(f'{len(self.controllers)} AlfaTemplate object(s) in memory {self.controllers.keys()}')
