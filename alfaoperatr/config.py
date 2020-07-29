@@ -22,15 +22,22 @@ class Config(Mapping):
     self.cooldown =        cooldown
     self.debug_path =      debug_path
     self.log_level =       log_level
-    self.logger =          Log.get_logger(f'Config()', log_level) if logger is None else logger
+    self.logger =          Log.get_logger(f'Config()', log_level)     if logger is None else logger
     self.template_filter = template_filter                            if isinstance(template_filter, Pattern) else compile(template_filter)
     self.template_path =   template_path
 
     if self.debug_path:
       makedirs(self.debug_path, exist_ok=True)
 
-
-
+    self.logger.info(f'Config loaded:')
+    self.logger.info(f'  api_proxy: {self.api_proxy}')
+    self.logger.info(f'  app_filter: {self.app_filter}')
+    self.logger.info(f'  cooldown: {self.cooldown}')
+    self.logger.info(f'  debug_path: {self.debug_path}')
+    self.logger.info(f'  log_level: {self.log_level}')
+    self.logger.info(f'  template_filter: {self.template_filter}')
+    self.logger.info(f'  template_path: {self.template_path}')
+    
     self._kinds = dict({item['kind']:item for item in self._get_kinds()})
     with request('get', self._kinds["AlfaTemplate"]["url"]) as r:
       for ac in r.json()["items"]:
