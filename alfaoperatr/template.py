@@ -69,7 +69,7 @@ class AlfaTemplateConsumer:
 
   async def loop(self):
     while True:
-      self.logger.info(f'Sleeping until next event')
+      self.logger.debug(f'Sleeping until next event')
       event = await self.queue.get()
       self.logger.info(f'Consumer awaiting cooldown for {self.config.cooldown} seconds')
       await sleep(self.config.cooldown)
@@ -124,8 +124,11 @@ class AlfaTemplateConsumer:
       if self.config.debug_path:
         with open(os.path.join(self.config.debug_path, "alfatemplate-" + self.metadata["name"] + "-result.yaml"), 'w') as outfile:
           outfile.write(j2result)
+    except jinja2.TemplateSyntaxError as e:
+      self.logger.error(f'Template Syntax Error Rendering Template: {e.message} ({self.metadata["name"]}:{e.lineno})')
+      return
     except Exception as e:
-      self.logger.error(f'Error Rendering Template: {repr(e)}')
+      self.logger.error(f'Unknown Exception Rendering Template: {repr(e)}')
       return
 
     for render in renders:
