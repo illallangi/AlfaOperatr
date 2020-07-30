@@ -298,8 +298,8 @@ class CustomFunctions(functions.Functions):
         {
           **p, 
           **{
-            '__index':        index,
-            '__index_string': None if index is None else f'{index:02d}',
+            '__number':        index,
+            '__index': None if index is None else f'{index:02d}',
           }
         } for index in ([None] + list(range(0,c or 0)))
       ]
