@@ -9,6 +9,7 @@ import sys
 import yaml
 import six
 import jmespath
+from jmespath import functions
 import re
 from hashlib import sha256
 from more_itertools import one
@@ -94,8 +95,8 @@ class AlfaTemplateConsumer:
     j2environment.filters["b64decode"] = b64decode
     j2environment.filters["ipaddr"] = ipaddr
     j2environment.filters["json_query"] = json_query
-    j2environment.filters["json_query_list"] = json_query_list
     j2environment.filters["json_query_one"] = json_query_one
+    j2environment.filters["json_query_unique"] = json_query_unique
     j2environment.filters["unique_dict"] = unique_dict
     j2environment.filters["cheap_hash"] = cheap_hash
     j2environment.tests["is_subset"] = is_subset
@@ -226,19 +227,18 @@ def string_representer(dumper, value):
 yaml.Dumper.add_representer(six.text_type, string_representer)
 
 def json_query(v, f):
-  f = json_query_min(f)
-  return jmespath.search(f, v)
-
-def json_query_list(v, f):
-  f = json_query_min(f)
-  return list(json_query(v, f))
+  l = jmespath.search(f, v, options=jmespath.Options(custom_functions=CustomFunctions()))
+  return list(l)
 
 def json_query_one(v, f):
-  f = json_query_min(f)
-  l = json_query_list(v, f)
+  l = jmespath.search(f, v, options=jmespath.Options(custom_functions=CustomFunctions()))
   if len(l)!=1:
-    raise Exception(f'too many items in iterable (expected 1, received {len(l)} from {f})')
+    raise Exception(f'too many items in iterable (expected 1, received {len(l)} from {json_query_min(f)})')
   return one(l)
+
+def json_query_unique(v, f):
+  l = jmespath.search(f, v, options=jmespath.Options(custom_functions=CustomFunctions()))
+  return list(yaml.load(y, Loader=yaml.FullLoader) for y in set(yaml.dump(d) for d in l))
 
 def json_query_min(f):
   return re.sub('[\r\n ]+',' ', f)
@@ -280,3 +280,16 @@ def ipaddr(value, action):
   if action == "revdns":
     return IPAddress(value).reverse_dns.strip('.')
   raise NotImplementedError
+
+class CustomFunctions(functions.Functions):
+  @functions.signature({'types': ['object']},{'types': ['null','number']})
+  def _func_loop(self, p, c):
+    return [
+        {
+          **p, 
+          **{
+            '__index':        index,
+            '__index_string': None if index is None else f'{index:02d}',
+          }
+        } for index in ([None] + list(range(0,c or 0)))
+      ]
