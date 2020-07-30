@@ -119,7 +119,17 @@ class AlfaTemplateConsumer:
     
     try:
       self.logger.info(f'Rendering Template')
-      j2result = j2environment.from_string(source=self.template).render(items=items, metadata=self.metadata)
+      j2result = j2environment.from_string(source=self.template).render(
+          items=items,
+          metadata=self.metadata,
+          objects=[
+              {
+                'item':     {i:item.get('metadata',{})[i] for i in item.get('metadata',{}) if i in ['annotations','labels','name','namespace','selfLink','uid']},
+                'template': {i:self.metadata[i]           for i in self.metadata           if i in ['annotations','labels','name','namespace','selfLink','uid']},
+                'spec':     item.get('spec',{}),
+                'kind':     item.get('kind','')
+              } for item in items
+            ])
       renders = list(yaml.load_all(j2result, Loader=yaml.FullLoader))
       self.logger.info(f' - Rendered {len(renders)} Items')
       if self.config.debug_path:
