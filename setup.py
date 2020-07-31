@@ -19,7 +19,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
-    entry_points = {
+    entry_points={
         'console_scripts': ['alfaoperatr=alfaoperatr:__main__.main'],
     },
     install_requires=[

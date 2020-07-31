@@ -5,7 +5,7 @@ from .controller import AlfaController
 
 
 class AlfaOperator:
-    def __init__(self, config, controller = None, logger = None):
+    def __init__(self, config, controller=None, logger=None):
         self.config = config
         self.controller = controller if controller else AlfaController(config)
         self.logger = AlfaLog.get_logger(f'AlfaOperator()', self.config.log_level) if logger is None else logger

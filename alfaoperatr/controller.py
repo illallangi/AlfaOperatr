@@ -8,7 +8,7 @@ from .producer import AlfaProducer
 
 
 class AlfaController:
-    def __init__(self, config, queue = None, session = None, logger = None):
+    def __init__(self, config, queue=None, session=None, logger=None):
         self.config = config
         self.session = ClientSession() if session is None else session
         self.queue = Queue() if queue is None else queue
@@ -22,17 +22,17 @@ class AlfaController:
 
     def get_coroutines(self):
         yield AlfaControllerConsumer(
-            session = self.session,
-            queue = self.queue,
-            config = self.config).loop()
+            session=self.session,
+            queue=self.queue,
+            config=self.config).loop()
 
         for kind in ["AlfaTemplate"]:
             yield AlfaProducer(
-                kind = kind,
-                resource_version = None,
-                session = self.session,
-                queue = self.queue,
-                config = self.config).loop()
+                kind=kind,
+                resource_version=None,
+                session=self.session,
+                queue=self.queue,
+                config=self.config).loop()
 
     def __del__(self):
         if hasattr(self, "logger"):
@@ -44,7 +44,7 @@ class AlfaController:
 
 
 class AlfaControllerConsumer:
-    def __init__(self, config, session = None, queue = None, logger = None):
+    def __init__(self, config, session=None, queue=None, logger=None):
         self.config = config
         self.session = ClientSession() if session is None else session
         self.queue = Queue() if queue is None else queue
@@ -76,6 +76,6 @@ class AlfaControllerConsumer:
 
         if event["type"].lower() == "added" or event["type"].lower() == "modified":
             self.logger.info(f'creating new AlfaTemplate({event["object"]["metadata"]["name"]})')
-            controller = AlfaTemplate(event["object"], session = self.session, config=self.config)
+            controller = AlfaTemplate(event["object"], session=self.session, config=self.config)
             get_event_loop().create_task(controller.loop())
             self.controllers[event["object"]["metadata"]["name"]] = controller

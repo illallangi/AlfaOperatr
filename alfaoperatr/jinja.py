@@ -13,7 +13,7 @@ from .log import AlfaLog
 
 
 class AlfaJinja:
-    def __init__(self, config, logger = None):
+    def __init__(self, config, logger=None):
         self.config = config
         self.environment = jinja2.Environment(loader=jinja2.BaseLoader, trim_blocks=True, lstrip_blocks=True, extensions=["jinja2_ansible_filters.AnsibleCoreFiltersExtension"])
         self.environment.tests["is_subset"] = is_subset
@@ -140,7 +140,7 @@ def alfa_query(
         child_kind,
         child_group,
         child_version,
-        spec_filter = None):
+        spec_filter=None):
     query = f"[?kind=='{parent_kind}']."
     if spec_filter is not None:
         query = f"[?kind=='{parent_kind}' && spec.{spec_filter} && [spec.{spec_filter}.count,`1`][?@]|[0] > `0`].[loop(@, spec.{spec_filter}.count)][][]."

@@ -13,7 +13,7 @@ from .jinja import AlfaJinja
 
 
 class AlfaTemplate:
-    def __init__(self, alfa_template, config, queue = None, session = None, logger = None):
+    def __init__(self, alfa_template, config, queue=None, session=None, logger=None):
         self.alfa_template = alfa_template
         self.config = config
         self.session = ClientSession() if session is None else session
@@ -29,17 +29,17 @@ class AlfaTemplate:
     def get_coroutines(self):
         yield AlfaTemplateConsumer(
             self.alfa_template,
-            session = self.session,
-            queue = self.queue,
-            config = self.config).loop()
+            session=self.session,
+            queue=self.queue,
+            config=self.config).loop()
 
         for kind in self.alfa_template["spec"]["kinds"]:
             yield AlfaProducer(
-                kind = kind,
-                resource_version = None,
-                session = self.session,
-                queue = self.queue,
-                config = self.config).loop()
+                kind=kind,
+                resource_version=None,
+                session=self.session,
+                queue=self.queue,
+                config=self.config).loop()
 
     def __del__(self):
         self.logger.info(f'__del__ starting')
@@ -49,7 +49,7 @@ class AlfaTemplate:
 
 
 class AlfaTemplateConsumer:
-    def __init__(self, alfa_template, config, jinja = None, session = None, queue = None, logger = None):
+    def __init__(self, alfa_template, config, jinja=None, session=None, queue=None, logger=None):
         self.kinds = alfa_template["spec"]["kinds"]
         self.template = alfa_template["spec"]["template"]
         self.metadata = alfa_template["metadata"]

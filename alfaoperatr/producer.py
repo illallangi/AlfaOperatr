@@ -8,7 +8,7 @@ from .log import AlfaLog
 
 
 class AlfaProducer:
-    def __init__(self, kind, config, session = None, resource_version = None, queue = None, logger = None):
+    def __init__(self, kind, config, session=None, resource_version=None, queue=None, logger=None):
         self.kind = kind
         self.config = config
         self.resource_version = resource_version

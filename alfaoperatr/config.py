@@ -10,14 +10,14 @@ from .log import AlfaLog
 
 class AlfaConfig(Mapping):
     def __init__(self,
-                 api_proxy = 'http://localhost:8001',
-                 app_filter = '.*',
-                 cooldown = 5,
-                 debug_path = None,
-                 log_level = 'INFO',
-                 logger = None,
-                 template_filter = '.*',
-                 template_path = None):
+                 api_proxy='http://localhost:8001',
+                 app_filter='.*',
+                 cooldown=5,
+                 debug_path=None,
+                 log_level='INFO',
+                 logger=None,
+                 template_filter='.*',
+                 template_path=None):
         self.api_proxy = api_proxy if isinstance(api_proxy, URL) else URL(api_proxy)
         self.app_filter = app_filter if isinstance(app_filter, Pattern) else compile(app_filter)
         self.cooldown = cooldown
