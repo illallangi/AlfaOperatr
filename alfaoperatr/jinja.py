@@ -90,7 +90,7 @@ def json_query(v, f):
 
 def json_query_one(v, f):
     l = jmespath.search(f, v, options=jmespath.Options(custom_functions=CustomFunctions()))
-    if len(l)!=1:
+    if len(l) != 1:
         raise Exception(f'too many items in iterable (expected 1, received {len(l)} from {f})')
     return one(l)
 
@@ -107,7 +107,7 @@ def unique_dict(v):
 # https://stackoverflow.com/posts/14023440/timeline#history_4c28e0a3-82ef-4080-9c59-11a95a097fee
 # cc by-sa 3.0
 def cheap_hash(string, length=6):
-    if length<len(sha256(string.encode('utf-8')).hexdigest()):
+    if length < len(sha256(string.encode('utf-8')).hexdigest()):
         return sha256(string.encode('utf-8')).hexdigest()[:length]
     else:
         raise Exception("Length too long. Length of {y} when hash length is {x}.".format(x=str(len(sha256(string.encode('utf-8')).hexdigest())), y=length))
