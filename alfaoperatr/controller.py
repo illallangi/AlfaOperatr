@@ -1,7 +1,8 @@
 from asyncio import Queue, gather, get_event_loop
 
-from aiohttp import ClientSession
 from json import dumps
+
+from aiohttp import ClientSession
 
 from .log import AlfaLog
 from .producer import AlfaProducer

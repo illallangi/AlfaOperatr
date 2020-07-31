@@ -1,4 +1,5 @@
 import click
+
 from .config import AlfaConfig
 from .operator import AlfaOperator
 
