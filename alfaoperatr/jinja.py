@@ -43,7 +43,7 @@ class AlfaJinja:
         except Exception as e:
             self.logger.error(f'Unknown Exception Rendering Template: {repr(e)}')
             return None
-        
+
         return jinja2_result.strip()
 
 
@@ -129,16 +129,16 @@ def merge(a, b, path=None):
 
 
 def alfa_query(
-        v, 
-        parent_kind, 
-        child_kind, 
-        child_group, 
+        v,
+        parent_kind,
+        child_kind,
+        child_group,
         child_version,
         spec_filter = None):
     query = f"[?kind=='{parent_kind}']."
     if spec_filter is not None:
         query = f"[?kind=='{parent_kind}' && spec.{spec_filter} && [spec.{spec_filter}.count,`1`][?@]|[0] > `0`].[loop(@, spec.{spec_filter}.count)][][]."
-        
+
     query = query + f'''
             {{
                 "apiVersion": '{child_group}/{child_version}',
@@ -224,7 +224,7 @@ class CustomFunctions(functions.Functions):
     def _func_loop(self, p, c):
         return [
                 {
-                    **p, 
+                    **p,
                     **{
                         '__number':                index,
                         '__index': None if index is None else f'{index:02d}',

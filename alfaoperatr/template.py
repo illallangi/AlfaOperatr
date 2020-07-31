@@ -63,7 +63,7 @@ class AlfaTemplateConsumer:
         self.update = alfa_template["spec"]["update"]
         self.config = config
         self.jinja = AlfaJinja(config) if jinja is None else jinja
-        
+
         self.session = ClientSession() if session is None else session
         self.queue = Queue() if queue is None else queue
         self.logger = AlfaLog.get_logger(f'AlfaTemplateConsumer({alfa_template["metadata"]["name"]})', self.config.log_level) if logger is None else logger
@@ -100,11 +100,11 @@ class AlfaTemplateConsumer:
         except Exception as e:
             self.logger.error(f'Error Getting Items: {repr(e)}')
             return
-        
+
         try:
             self.logger.info(f'Rendering Template')
             j2result = self.jinja.render(
-                    self.template, 
+                    self.template,
                     items=items,
                     metadata=self.metadata,
                     objects=[
@@ -122,7 +122,7 @@ class AlfaTemplateConsumer:
         except Exception as e:
             self.logger.error(f'Unknown Exception Rendering Template: {repr(e)}')
             return
-        
+
         try:
             self.logger.info(f'Loading Objects from Rendered Template')
             renders = list(yaml.load_all(j2result, Loader=yaml.FullLoader))
@@ -165,18 +165,18 @@ class AlfaTemplateConsumer:
                         except Exception as e:
                             self.logger.error(f'Error Creating {render["kind"]}: {repr(e)}')
                             continue
-                        
+
                     else:
                         item_get = await item_get_response.json()
                         if self.config.debug_path:
                             with open(os.path.join(self.config.debug_path, f'{item_get["metadata"].get("namespace","cluster")}-{item_get["metadata"]["name"]}-{item_get["kind"]}-{item_get["metadata"]["resourceVersion"]}.yaml'), 'w') as outfile:
                                 yaml.dump(item_get, outfile)
                         render["metadata"]["resourceVersion"] = item_get["metadata"]["resourceVersion"]
-                        
+
                         if not self.update:
                             self.logger.info(f'Not updating as update set to false {render["kind"]} {url}')
                             continue
-                        
+
                         # Ugly hack to avoid race condition
                         if "deployment.kubernetes.io/revision" in item_get.get("metadata", {}).get("annotations", {}):
                             if "metadata" not in render:
