@@ -108,7 +108,8 @@ class AlfaTemplateConsumer:
                         'item': {i: item.get('metadata', {})[i] for i in item.get('metadata', {}) if i in ['annotations', 'labels', 'name', 'namespace', 'selfLink', 'uid']},
                         'template': {i: self.metadata[i] for i in self.metadata if i in ['annotations', 'labels', 'name', 'namespace', 'selfLink', 'uid']},
                         'spec': item.get('spec', {}),
-                        'kind': item.get('kind', '')
+                        'kind': item.get('kind', ''),
+                        'apiVersion': item.get('apiVersion', '')
                     } for item in items
                 ]
             )
