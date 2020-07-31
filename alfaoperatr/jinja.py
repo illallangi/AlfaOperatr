@@ -84,20 +84,20 @@ def ipaddr(value, action):
 
 
 def json_query(v, f):
-    l = jmespath.search(f, v, options=jmespath.Options(custom_functions=CustomFunctions()))
-    return list(l)
+    result = jmespath.search(f, v, options=jmespath.Options(custom_functions=CustomFunctions()))
+    return list(result)
 
 
 def json_query_one(v, f):
-    l = jmespath.search(f, v, options=jmespath.Options(custom_functions=CustomFunctions()))
-    if len(l) != 1:
-        raise Exception(f'too many items in iterable (expected 1, received {len(l)} from {f})')
-    return one(l)
+    result = jmespath.search(f, v, options=jmespath.Options(custom_functions=CustomFunctions()))
+    if len(result) != 1:
+        raise Exception(f'too many items in iterable (expected 1, received {len(result)} from {f})')
+    return one(result)
 
 
 def json_query_unique(v, f):
-    l = jmespath.search(f, v, options=jmespath.Options(custom_functions=CustomFunctions()))
-    return list(yaml.load(y, Loader=yaml.FullLoader) for y in set(yaml.dump(d) for d in l))
+    result = jmespath.search(f, v, options=jmespath.Options(custom_functions=CustomFunctions()))
+    return list(yaml.load(y, Loader=yaml.FullLoader) for y in set(yaml.dump(d) for d in result))
 
 
 def unique_dict(v):
