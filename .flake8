@@ -1,2 +1,4 @@
 [flake8]
 exclude = .git, __pycache__
+ignore =
+    E501 # line too long
