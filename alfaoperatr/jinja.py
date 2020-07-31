@@ -54,9 +54,9 @@ class AlfaJinja:
 
 # https://stackoverflow.com/posts/18335110/timeline
 # cc-by-sa 4.0
-def is_subset(v, superset):
+def is_subset(input, superset):
     try:
-        for key, value in v.items():
+        for key, value in input.items():
             if type(value) is dict:
                 result = is_subset(value, superset[key])
                 assert result
@@ -68,13 +68,13 @@ def is_subset(v, superset):
     return result
 
 
-def is_superset(v, subset):
-    return is_subset(subset, v)
+def is_superset(input, subset):
+    return is_subset(subset, input)
 
 
 # https://gist.github.com/tobinquadros/1862543f719b72b57cf682918c99683c
-def b64decode(v):
-    return base64.b64decode(v).decode()
+def b64decode(input):
+    return base64.b64decode(input).decode()
 
 
 def ipaddr(value, action):
@@ -83,25 +83,25 @@ def ipaddr(value, action):
     raise NotImplementedError
 
 
-def json_query(v, f):
-    result = jmespath.search(f, v, options=jmespath.Options(custom_functions=CustomFunctions()))
+def json_query(input, f):
+    result = jmespath.search(f, input, options=jmespath.Options(custom_functions=CustomFunctions()))
     return list(result)
 
 
-def json_query_one(v, f):
-    result = jmespath.search(f, v, options=jmespath.Options(custom_functions=CustomFunctions()))
+def json_query_one(input, f):
+    result = jmespath.search(f, input, options=jmespath.Options(custom_functions=CustomFunctions()))
     if len(result) != 1:
         raise Exception(f'too many items in iterable (expected 1, received {len(result)} from {f})')
     return one(result)
 
 
-def json_query_unique(v, f):
-    result = jmespath.search(f, v, options=jmespath.Options(custom_functions=CustomFunctions()))
+def json_query_unique(input, f):
+    result = jmespath.search(f, input, options=jmespath.Options(custom_functions=CustomFunctions()))
     return list(yaml.load(y, Loader=yaml.FullLoader) for y in set(yaml.dump(d) for d in result))
 
 
-def unique_dict(v):
-    return list(yaml.load(y, Loader=yaml.FullLoader) for y in set(yaml.dump(d) for d in v))
+def unique_dict(input):
+    return list(yaml.load(y, Loader=yaml.FullLoader) for y in set(yaml.dump(d) for d in input))
 
 
 # https://stackoverflow.com/posts/14023440/timeline#history_4c28e0a3-82ef-4080-9c59-11a95a097fee
@@ -113,8 +113,8 @@ def cheap_hash(string, length=6):
         raise Exception("Length too long. Length of {y} when hash length is {x}.".format(x=str(len(sha256(string.encode('utf-8')).hexdigest())), y=length))
 
 
-def path_join(v):
-    return os.path.join(v[0], *v[1:]).strip('/')
+def path_join(input):
+    return os.path.join(input[0], *input[1:]).strip('/')
 
 
 def merge(a, b, path=None):
@@ -134,7 +134,7 @@ def merge(a, b, path=None):
 
 
 def alfa_query(
-        v,
+        input,
         parent_kind,
         child_kind,
         child_group,
@@ -220,7 +220,7 @@ def alfa_query(
                 "__index": __index,
                 "__number": __number
             }}'''
-    result = json_query(v, query)
+    result = json_query(input, query)
     return result
 
 
