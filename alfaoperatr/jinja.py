@@ -101,11 +101,11 @@ def json_query_one(input, f):
 
 def json_query_unique(input, f):
     result = jmespath.search(f, input, options=jmespath.Options(custom_functions=CustomFunctions()))
-    return list(yaml.load(y, Loader=yaml.FullLoader) for y in set(yaml.dump(d) for d in result))
+    return [yaml.load(y, Loader=yaml.FullLoader) for y in {yaml.dump(d) for d in result}]
 
 
 def unique_dict(input):
-    return list(yaml.load(y, Loader=yaml.FullLoader) for y in set(yaml.dump(d) for d in input))
+    return [yaml.load(y, Loader=yaml.FullLoader) for y in {yaml.dump(d) for d in input}]
 
 
 # https://stackoverflow.com/posts/14023440/timeline#history_4c28e0a3-82ef-4080-9c59-11a95a097fee
