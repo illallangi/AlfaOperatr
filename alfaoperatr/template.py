@@ -64,7 +64,7 @@ class AlfaTemplateConsumer:
     async def loop(self):
         while True:
             self.logger.debug(f'Sleeping until next event')
-            event = await self.queue.get()
+            await self.queue.get()
             self.logger.info(f'Consumer awaiting cooldown for {self.config.cooldown} seconds')
             await sleep(self.config.cooldown)
             while not self.queue.empty():
