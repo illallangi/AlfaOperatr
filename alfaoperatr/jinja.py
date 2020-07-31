@@ -38,7 +38,7 @@ class AlfaJinja:
         try:
             jinja2_template = self.environment.from_string(source=template)
         except jinja2.TemplateSyntaxError as e:
-            self.logger.error(f'Template Syntax Error Loading Template: {e.message} ({self.metadata["name"]}:{e.lineno})')
+            self.logger.error(f'Template Syntax Error Loading Template: {e} ({self.metadata["name"]}:{e.lineno})')
             return None
         except Exception as e:
             self.logger.error(f'Unknown Exception Loading Template: {repr(e)}')
@@ -47,7 +47,7 @@ class AlfaJinja:
         try:
             jinja2_result = jinja2_template.render(**kwargs)
         except jinja2.TemplateSyntaxError as e:
-            self.logger.error(f'Template Syntax Error Rendering Template: {e.message} ({self.metadata["name"]}:{e.lineno})')
+            self.logger.error(f'Template Syntax Error Rendering Template: {e} ({self.metadata["name"]}:{e.lineno})')
             return None
         except Exception as e:
             self.logger.error(f'Unknown Exception Rendering Template: {repr(e)}')
