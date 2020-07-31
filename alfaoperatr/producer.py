@@ -1,7 +1,10 @@
 from yarl import URL
+
 from aiohttp import ClientSession
+
 from asyncio import Queue, sleep
 from asyncio.exceptions import TimeoutError
+
 import json
 
 from .log import AlfaLog
@@ -35,7 +38,7 @@ class AlfaProducer:
                             if int(event["object"]["metadata"]["resourceVersion"]) > (self.resource_version or 0):
                                 self.resource_version = int(event["object"]["metadata"]["resourceVersion"])
                         await sleep(0)
-            except TimeoutError as e:
+            except TimeoutError:
                 self.logger.info(f'Timed out, restarting at resourceVersion {self.resource_version}')
 
     async def handle_event(self, event):
