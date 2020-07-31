@@ -1,9 +1,11 @@
 from collections.abc import Mapping
 from difflib import get_close_matches
 from os import makedirs
+from re import Pattern, compile
+
 from requests import request
+
 from yarl import URL
-from re import compile, Pattern
 
 from .log import AlfaLog
 
@@ -30,7 +32,7 @@ class AlfaConfig(Mapping):
         if self.debug_path:
             makedirs(self.debug_path, exist_ok=True)
 
-        self.logger.info(f'Config loaded:')
+        self.logger.info('Config loaded:')
         self.logger.info(f'    api_proxy: {self.api_proxy}')
         self.logger.info(f'    app_filter: {self.app_filter}')
         self.logger.info(f'    cooldown: {self.cooldown}')
