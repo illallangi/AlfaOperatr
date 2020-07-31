@@ -78,22 +78,22 @@ class AlfaConfig(Mapping):
                 for resource in r.json()["resources"]:
                     if '/' not in resource["name"]:
                         yield {
-                                'version': r.json()["groupVersion"],
-                                'type': resource["name"],
-                                'kind': resource["kind"],
-                                'templates': [],
-                                'url': URL(r.url) / resource["name"],
-                            }
+                            'version': r.json()["groupVersion"],
+                            'type': resource["name"],
+                            'kind': resource["kind"],
+                            'templates': [],
+                            'url': URL(r.url) / resource["name"],
+                        }
 
         for url in self._get_group_versions():
             with request('get', url) as r:
                 for resource in r.json()["resources"]:
                     if '/' not in resource["name"]:
                         yield {
-                                'group': r.json()["groupVersion"].split('/')[0],
-                                'version': r.json()["groupVersion"].split('/')[-1],
-                                'type': resource["name"],
-                                'kind': resource["kind"],
-                                'templates': [],
-                                'url': URL(r.url) / resource["name"],
-                            }
+                            'group': r.json()["groupVersion"].split('/')[0],
+                            'version': r.json()["groupVersion"].split('/')[-1],
+                            'type': resource["name"],
+                            'kind': resource["kind"],
+                            'templates': [],
+                            'url': URL(r.url) / resource["name"],
+                        }

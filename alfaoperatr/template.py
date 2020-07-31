@@ -97,18 +97,18 @@ class AlfaTemplateConsumer:
         try:
             self.logger.info(f'Rendering Template')
             j2result = self.jinja.render(
-                    self.template,
-                    items=items,
-                    metadata=self.metadata,
-                    objects=[
-                        {
-                            'item': {i: item.get('metadata', {})[i] for i in item.get('metadata', {}) if i in ['annotations', 'labels', 'name', 'namespace', 'selfLink', 'uid']},
-                            'template': {i: self.metadata[i] for i in self.metadata if i in ['annotations', 'labels', 'name', 'namespace', 'selfLink', 'uid']},
-                            'spec': item.get('spec', {}),
-                            'kind': item.get('kind', '')
-                        } for item in items
-                    ]
-                )
+                self.template,
+                items=items,
+                metadata=self.metadata,
+                objects=[
+                    {
+                        'item': {i: item.get('metadata', {})[i] for i in item.get('metadata', {}) if i in ['annotations', 'labels', 'name', 'namespace', 'selfLink', 'uid']},
+                        'template': {i: self.metadata[i] for i in self.metadata if i in ['annotations', 'labels', 'name', 'namespace', 'selfLink', 'uid']},
+                        'spec': item.get('spec', {}),
+                        'kind': item.get('kind', '')
+                    } for item in items
+                ]
+            )
             if j2result is None:
                 return
             self.logger.info(f' - Rendered {len(j2result)} bytes')
