@@ -1,10 +1,11 @@
+from asyncio import Queue, gather, get_event_loop
+
 from aiohttp import ClientSession
-from asyncio import Queue, get_event_loop, gather
 from json import dumps
 
 from .log import AlfaLog
-from .template import AlfaTemplate
 from .producer import AlfaProducer
+from .template import AlfaTemplate
 
 
 class AlfaController:
@@ -12,13 +13,13 @@ class AlfaController:
         self.config = config
         self.session = ClientSession() if session is None else session
         self.queue = Queue() if queue is None else queue
-        self.logger = AlfaLog.get_logger(f'AlfaController()', self.config.log_level) if logger is None else logger
+        self.logger = AlfaLog.get_logger('AlfaController()', self.config.log_level) if logger is None else logger
 
     async def loop(self):
-        self.logger.info(f'loop starting')
+        self.logger.info('loop starting')
         self.task = gather(*self.get_coroutines())
         await self.task
-        self.logger.info(f'loop completed')
+        self.logger.info('loop completed')
 
     def get_coroutines(self):
         yield AlfaControllerConsumer(
@@ -36,11 +37,11 @@ class AlfaController:
 
     def __del__(self):
         if hasattr(self, "logger"):
-            self.logger.info(f'__del__ starting')
+            self.logger.info('__del__ starting')
         if hasattr(self, "task") and self.task is not None:
             self.task.cancel()
         if hasattr(self, "logger"):
-            self.logger.info(f'__del__ completed')
+            self.logger.info('__del__ completed')
 
 
 class AlfaControllerConsumer:
@@ -48,13 +49,13 @@ class AlfaControllerConsumer:
         self.config = config
         self.session = ClientSession() if session is None else session
         self.queue = Queue() if queue is None else queue
-        self.logger = AlfaLog.get_logger(f'AlfaControllerConsumer()', self.config.log_level) if logger is None else logger
+        self.logger = AlfaLog.get_logger('AlfaControllerConsumer()', self.config.log_level) if logger is None else logger
         self.controllers = {}
 
     async def loop(self):
         while True:
             self.logger.info(f'{len(self.controllers)} AlfaTemplate object(s) in memory {self.controllers.keys()}')
-            self.logger.debug(f'Sleeping until next event')
+            self.logger.debug('Sleeping until next event')
             queued = await self.queue.get()
             await self.consume_event(queued['event'])
 
