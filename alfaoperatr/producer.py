@@ -20,7 +20,7 @@ class AlfaProducer:
         while True:
             try:
                 params = {'watch': 1}
-                if self.resource_version != None:
+                if self.resource_version is not None:
                     params['resourceVersion'] = self.resource_version
                 async with self.session.request('get', self.config[self.kind]["url"].with_query(**params)) as response:
                     self.logger.info(f'Connected, {URL(response.url).query_string}')
