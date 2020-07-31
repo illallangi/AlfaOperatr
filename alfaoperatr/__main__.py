@@ -29,5 +29,6 @@ def main(
     operator = AlfaOperator(config)
     operator.loop()
 
+
 if __name__ == "__main__":
     main()

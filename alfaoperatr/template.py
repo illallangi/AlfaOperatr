@@ -53,6 +53,7 @@ class AlfaTemplate:
             self.task.cancel()
         self.logger.info(f'__del__ completed')
 
+
 class AlfaTemplateConsumer:
     def __init__(self, alfa_template, config, jinja = None, session = None, queue = None, logger = None):
         self.kinds = alfa_template["spec"]["kinds"]
@@ -224,4 +225,6 @@ def string_representer(dumper, value):
     if value.startswith("0"):
         return dumper.represent_scalar("tag:yaml.org,2002:str", value, style="'")
     return dumper.represent_scalar("tag:yaml.org,2002:str", value)
+
+
 yaml.Dumper.add_representer(six.text_type, string_representer)

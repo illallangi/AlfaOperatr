@@ -18,6 +18,7 @@ def formatter_message(message, use_color = True):
         message = message.replace("$RESET", "").replace("$BOLD", "")
     return message
 
+
 COLORS = {
     'ERROR': RED,
     'CRITICAL': YELLOW,
@@ -38,6 +39,7 @@ class ColoredFormatter(logging.Formatter):
             record.levelname = levelname_color
         return logging.Formatter.format(self, record)
 
+
 # Custom logger class with multiple destinations
 class ColoredLogger(logging.Logger):
     FORMAT = "[$BOLD%(name)-50s$RESET][%(levelname)-18s]    %(message)s ($BOLD%(filename)s$RESET:%(lineno)d)"
@@ -52,6 +54,7 @@ class ColoredLogger(logging.Logger):
 
         self.addHandler(console)
         return
+
 
 logging.getLogger('apscheduler').setLevel(logging.ERROR)
 loggers = {}
