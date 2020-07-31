@@ -6,6 +6,7 @@ import json
 
 from .log import AlfaLog
 
+
 class AlfaProducer:
     def __init__(self, kind, config, session = None, resource_version = None, queue = None, logger = None):
         self.kind = kind

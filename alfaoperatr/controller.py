@@ -6,6 +6,7 @@ from .log import AlfaLog
 from .template import AlfaTemplate
 from .producer import AlfaProducer
 
+
 class AlfaController:
     def __init__(self, config, queue = None, session = None, logger = None):
         self.config = config
@@ -40,6 +41,7 @@ class AlfaController:
             self.task.cancel()
         if hasattr(self, "logger"):
             self.logger.info(f'__del__ completed')
+
 
 class AlfaControllerConsumer:
     def __init__(self, config, session = None, queue = None, logger = None):

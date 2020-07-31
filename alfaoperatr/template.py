@@ -18,6 +18,7 @@ from .log import AlfaLog
 from .producer import AlfaProducer
 from .jinja import AlfaJinja
 
+
 class AlfaTemplate:
     def __init__(self, alfa_template, config, queue = None, session = None, logger = None):
         self.alfa_template = alfa_template

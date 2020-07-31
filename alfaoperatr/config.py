@@ -7,6 +7,7 @@ from re import compile, Pattern
 
 from .log import AlfaLog
 
+
 class AlfaConfig(Mapping):
     def __init__(self,
             api_proxy = 'http://localhost:8001',

@@ -2,6 +2,7 @@ import click
 from .config import AlfaConfig
 from .operator import AlfaOperator
 
+
 @click.command(context_settings={"auto_envvar_prefix": "ALFA"})
 @click.option('--api-proxy',       default='http://localhost:8001', show_default=False, type=click.STRING)
 @click.option('--app-filter',      default='.*',                    show_default=False, type=click.STRING)

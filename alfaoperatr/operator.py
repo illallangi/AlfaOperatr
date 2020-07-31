@@ -3,6 +3,7 @@ from asyncio import ensure_future, get_event_loop
 from .log import AlfaLog
 from .controller import AlfaController
 
+
 class AlfaOperator:
     def __init__(self, config, controller = None, logger = None):
         self.config = config

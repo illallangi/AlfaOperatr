@@ -6,6 +6,7 @@ from jmespath import functions
 
 from .log import AlfaLog
 
+
 class AlfaJinja:
     def __init__(self, config, logger = None):
         self.config = config
@@ -45,6 +46,7 @@ class AlfaJinja:
         
         return jinja2_result.strip()
 
+
 # https://stackoverflow.com/posts/18335110/timeline
 # cc-by-sa 4.0
 def is_subset(v, superset):
@@ -60,21 +62,26 @@ def is_subset(v, superset):
         result = False
     return result
 
+
 def is_superset(v, subset):
     return is_subset(subset, v)
+
 
 # https://gist.github.com/tobinquadros/1862543f719b72b57cf682918c99683c
 def b64decode(v):
     return base64.b64decode(v).decode()
+
 
 def ipaddr(value, action):
     if action == "revdns":
         return IPAddress(value).reverse_dns.strip('.')
     raise NotImplementedError
 
+
 def json_query(v, f):
     l = jmespath.search(f, v, options=jmespath.Options(custom_functions=CustomFunctions()))
     return list(l)
+
 
 def json_query_one(v, f):
     l = jmespath.search(f, v, options=jmespath.Options(custom_functions=CustomFunctions()))
@@ -82,12 +89,15 @@ def json_query_one(v, f):
         raise Exception(f'too many items in iterable (expected 1, received {len(l)} from {f})')
     return one(l)
 
+
 def json_query_unique(v, f):
     l = jmespath.search(f, v, options=jmespath.Options(custom_functions=CustomFunctions()))
     return list(yaml.load(y, Loader=yaml.FullLoader) for y in set(yaml.dump(d) for d in l))
 
+
 def unique_dict(v):
     return list(yaml.load(y, Loader=yaml.FullLoader) for y in set(yaml.dump(d) for d in v))
+
 
 # https://stackoverflow.com/posts/14023440/timeline#history_4c28e0a3-82ef-4080-9c59-11a95a097fee
 # cc by-sa 3.0
@@ -97,8 +107,10 @@ def cheap_hash(string,length=6):
     else:
         raise Exception("Length too long. Length of {y} when hash length is {x}.".format(x=str(len(sha256(string.encode('utf-8')).hexdigest())),y=length))
 
+
 def path_join(v):
     return os.path.join(v[0], *v[1:]).strip('/')
+
 
 def merge(a, b, path=None):
     "merges b into a"
@@ -114,6 +126,7 @@ def merge(a, b, path=None):
         else:
             a[key] = b[key]
     return a
+
 
 def alfa_query(
         v, 
@@ -204,6 +217,7 @@ def alfa_query(
             }}'''
     result = json_query(v, query)
     return result
+
 
 class CustomFunctions(functions.Functions):
     @functions.signature({'types': ['object']},{'types': ['null','number']})
