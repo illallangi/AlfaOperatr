@@ -109,10 +109,10 @@ class AlfaTemplateConsumer:
                     metadata=self.metadata,
                     objects=[
                         {
-                            'item':         {i:item.get('metadata',{})[i] for i in item.get('metadata',{}) if i in ['annotations','labels','name','namespace','selfLink','uid']},
-                            'template': {i:self.metadata[i]                     for i in self.metadata                     if i in ['annotations','labels','name','namespace','selfLink','uid']},
-                            'spec':         item.get('spec',{}),
-                            'kind':         item.get('kind','')
+                            'item': {i: item.get('metadata', {})[i] for i in item.get('metadata', {}) if i in ['annotations', 'labels', 'name', 'namespace', 'selfLink', 'uid']},
+                            'template': {i: self.metadata[i] for i in self.metadata if i in ['annotations', 'labels', 'name', 'namespace', 'selfLink', 'uid']},
+                            'spec': item.get('spec', {}),
+                            'kind': item.get('kind', '')
                         } for item in items
                     ]
                 )
@@ -178,7 +178,7 @@ class AlfaTemplateConsumer:
                             continue
                         
                         # Ugly hack to avoid race condition
-                        if "deployment.kubernetes.io/revision" in item_get.get("metadata",{}).get("annotations",{}):
+                        if "deployment.kubernetes.io/revision" in item_get.get("metadata", {}).get("annotations", {}):
                             if "metadata" not in render:
                                 render["metadata"] = {}
                             if "annotations" not in render["metadata"]:
@@ -186,7 +186,7 @@ class AlfaTemplateConsumer:
                             render["metadata"]["annotations"]["deployment.kubernetes.io/revision"] = item_get["metadata"]["annotations"]["deployment.kubernetes.io/revision"]
 
                         # Ugly hack to avoid race condition
-                        if "clusterIP" in item_get.get("spec",{}):
+                        if "clusterIP" in item_get.get("spec", {}):
                             if "spec" not in render:
                                 render["spec"] = {}
                             render["spec"]["clusterIP"] = item_get["spec"]["clusterIP"]

@@ -101,11 +101,11 @@ def unique_dict(v):
 
 # https://stackoverflow.com/posts/14023440/timeline#history_4c28e0a3-82ef-4080-9c59-11a95a097fee
 # cc by-sa 3.0
-def cheap_hash(string,length=6):
+def cheap_hash(string, length=6):
     if length<len(sha256(string.encode('utf-8')).hexdigest()):
         return sha256(string.encode('utf-8')).hexdigest()[:length]
     else:
-        raise Exception("Length too long. Length of {y} when hash length is {x}.".format(x=str(len(sha256(string.encode('utf-8')).hexdigest())),y=length))
+        raise Exception("Length too long. Length of {y} when hash length is {x}.".format(x=str(len(sha256(string.encode('utf-8')).hexdigest())), y=length))
 
 
 def path_join(v):
@@ -220,7 +220,7 @@ def alfa_query(
 
 
 class CustomFunctions(functions.Functions):
-    @functions.signature({'types': ['object']},{'types': ['null','number']})
+    @functions.signature({'types': ['object']}, {'types': ['null', 'number']})
     def _func_loop(self, p, c):
         return [
                 {
@@ -229,5 +229,5 @@ class CustomFunctions(functions.Functions):
                         '__number':                index,
                         '__index': None if index is None else f'{index:02d}',
                     }
-                } for index in ([None] + list(range(0,c or 0)))
+                } for index in ([None] + list(range(0, c or 0)))
             ]

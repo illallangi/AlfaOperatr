@@ -60,7 +60,7 @@ class AlfaControllerConsumer:
 
     async def consume_event(self, event):
         self.logger.debug(f'Received event {dumps(event)}')
-        if not self.config.app_filter.match(event["object"]["metadata"].get("labels",{}).get("app.kubernetes.io/name","")):
+        if not self.config.app_filter.match(event["object"]["metadata"].get("labels", {}).get("app.kubernetes.io/name", "")):
             self.logger.info(f'Ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]}) - Filtered by app filter {self.config.app_filter}')
             return
 

@@ -39,12 +39,12 @@ class AlfaConfig(Mapping):
         self.logger.info(f'    template_filter: {self.template_filter}')
         self.logger.info(f'    template_path: {self.template_path}')
         
-        self._kinds = dict({item['kind']:item for item in self._get_kinds()})
+        self._kinds = dict({item['kind']: item for item in self._get_kinds()})
         with request('get', self._kinds["AlfaTemplate"]["url"]) as r:
             for ac in r.json()["items"]:
                 for kind in ac["spec"]["kinds"]:
                     if kind not in self._kinds.keys():
-                        maybe = get_close_matches(kind, self._kinds.keys(),1)
+                        maybe = get_close_matches(kind, self._kinds.keys(), 1)
                         if len(maybe) == 0:
                             self.logger.error(f'AlfaTemplate "{ac["metadata"]["name"]}" refers to Kind "{kind}" that does not exist, will not monitor this kind.')
                         else:
