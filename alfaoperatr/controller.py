@@ -33,7 +33,7 @@ class AlfaController:
                 session = self.session,
                 queue = self.queue,
                 config = self.config).loop()
-        
+
     def __del__(self):
         if hasattr(self, "logger"):
             self.logger.info(f'__del__ starting')
@@ -69,7 +69,7 @@ class AlfaControllerConsumer:
             return
 
         self.logger.info(f'Processing {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]})')
-        
+
         if event["object"]["metadata"]["name"] in self.controllers.keys():
             self.logger.info(f'stopping existing AlfaTemplate({event["object"]["metadata"]["name"]})')
             self.controllers.pop(event["object"]["metadata"]["name"])

@@ -47,5 +47,5 @@ class AlfaProducer:
             return
         self.logger.info(f'Handling {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]})')
         self.logger.debug(f'Received event {json.dumps(event)}')
-            
+
         await self.queue.put({'event': event})
