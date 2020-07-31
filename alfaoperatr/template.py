@@ -100,6 +100,7 @@ class AlfaTemplateConsumer:
     j2environment.filters["unique_dict"] = unique_dict
     j2environment.filters["cheap_hash"] = cheap_hash
     j2environment.filters["alfa_query"] = alfa_query
+    j2environment.filters["path_join"] = path_join
     j2environment.filters["merge"] = merge
     j2environment.tests["is_subset"] = is_subset
     j2environment.tests["is_superset"] = is_superset
@@ -354,6 +355,9 @@ def is_superset(v, subset):
 # https://gist.github.com/tobinquadros/1862543f719b72b57cf682918c99683c
 def b64decode(v):
   return base64.b64decode(v).decode()
+
+def path_join(v):
+  return os.path.join(v[0], *v[1:]).strip('/')
 
 # https://stackoverflow.com/posts/14023440/timeline#history_4c28e0a3-82ef-4080-9c59-11a95a097fee
 # cc by-sa 3.0
