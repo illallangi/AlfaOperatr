@@ -90,7 +90,7 @@ class AlfaTemplateConsumer:
     return items
   
   def get_jinja(self):
-    j2environment = jinja2.Environment(loader=jinja2.BaseLoader, extensions=["jinja2_ansible_filters.AnsibleCoreFiltersExtension"])
+    j2environment = jinja2.Environment(loader=jinja2.BaseLoader, trim_blocks=True, lstrip_blocks=True, extensions=["jinja2_ansible_filters.AnsibleCoreFiltersExtension"])
     # add b64decode filter to jinja2 env
     j2environment.filters["b64decode"] = b64decode
     j2environment.filters["ipaddr"] = ipaddr
@@ -132,7 +132,7 @@ class AlfaTemplateConsumer:
                 'spec':     item.get('spec',{}),
                 'kind':     item.get('kind','')
               } for item in items
-            ])
+            ]).strip()
       renders = list(yaml.load_all(j2result, Loader=yaml.FullLoader))
       self.logger.info(f' - Rendered {len(renders)} Items')
       if self.config.debug_path:
