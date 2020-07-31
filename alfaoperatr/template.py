@@ -99,6 +99,7 @@ class AlfaTemplateConsumer:
     j2environment.filters["json_query_unique"] = json_query_unique
     j2environment.filters["unique_dict"] = unique_dict
     j2environment.filters["cheap_hash"] = cheap_hash
+    j2environment.filters["alfa_query"] = alfa_query
     j2environment.tests["is_subset"] = is_subset
     j2environment.tests["is_superset"] = is_superset
     return j2environment
@@ -236,6 +237,96 @@ def string_representer(dumper, value):
   return dumper.represent_scalar("tag:yaml.org,2002:str", value)
 yaml.Dumper.add_representer(six.text_type, string_representer)
 
+def alfa_query(
+    v, 
+    parent_kind, 
+    child_kind, 
+    child_group, 
+    child_version,
+    spec_filter = None):
+  query = f"[?kind=='{parent_kind}']."
+  if spec_filter is not None:
+    query = f"[?kind=='{parent_kind}' && spec.{spec_filter} && [spec.{spec_filter}.count,`1`][?@]|[0] > `0`].[loop(@, spec.{spec_filter}.count)][][]."
+    
+  query = query + f'''
+      {{
+        "apiVersion": '{child_group}/{child_version}',
+        "kind": '{child_kind}',
+        "metadata":
+        {{
+          "labels":
+          {{
+            "app.kubernetes.io/name": join(
+              '-',
+              [
+                [
+                  item.labels.["app.kubernetes.io/name"][0],
+                  template.labels.["app.kubernetes.io/name"][0]
+                ][?@]|[0]
+              ][?@]
+            ),
+            "app.kubernetes.io/instance": join(
+              '-',
+              [
+                [
+                  item.labels.["app.kubernetes.io/instance"][0],
+                  item.name
+                ][?@]|[0],
+                [
+                  __index
+                ][?@]|[0]
+              ][?@]
+            ),
+            "app.kubernetes.io/component":  join(
+              '-',
+              [
+                [
+                  item.labels.["app.kubernetes.io/component"][0],
+                  template.labels.["app.kubernetes.io/component"][0]
+                ][?@]|[0]
+              ][?@]
+            )
+          }},
+          "name": join(
+            '-',
+            [
+              [
+                item.labels.["app.kubernetes.io/name"][0],
+                template.labels.["app.kubernetes.io/name"][0]
+              ][?@]|[0],
+              [
+                item.labels.["app.kubernetes.io/instance"][0],
+                template.labels.["app.kubernetes.io/instance"][0],
+                item.name
+              ][?@]|[0],
+              [
+                __index
+              ][?@]|[0],
+              [
+                item.labels.["app.kubernetes.io/component"][0],
+                template.labels.["app.kubernetes.io/component"][0]
+              ][?@]|[0]
+            ]|[?@]
+          ),
+          "namespace": item.namespace,
+          "ownerReferences": [
+            {{
+              "apiVersion": apiVersion,
+              "blockOwnerDeletion": true,
+              "controller": false,
+              "kind": kind,
+              "name": item.name,
+              "uid": item.uid
+            }}
+          ]
+        }},
+        "spec": spec,
+        "__index": __index,
+        "__number": __number
+      }}'''
+  result = json_query(v, query)
+  return result
+      
 def json_query(v, f):
   l = jmespath.search(f, v, options=jmespath.Options(custom_functions=CustomFunctions()))
   return list(l)
