@@ -18,14 +18,14 @@ class AlfaConfig(Mapping):
                  logger = None,
                  template_filter = '.*',
                  template_path = None):
-        self.api_proxy =       api_proxy if isinstance(api_proxy, URL) else URL(api_proxy)
-        self.app_filter =      app_filter if isinstance(app_filter, Pattern) else compile(app_filter)
-        self.cooldown =        cooldown
-        self.debug_path =      debug_path
-        self.log_level =       log_level
-        self.logger =          AlfaLog.get_logger(f'Config()', log_level) if logger is None else logger
+        self.api_proxy = api_proxy if isinstance(api_proxy, URL) else URL(api_proxy)
+        self.app_filter = app_filter if isinstance(app_filter, Pattern) else compile(app_filter)
+        self.cooldown = cooldown
+        self.debug_path = debug_path
+        self.log_level = log_level
+        self.logger = AlfaLog.get_logger(f'Config()', log_level) if logger is None else logger
         self.template_filter = template_filter if isinstance(template_filter, Pattern) else compile(template_filter)
-        self.template_path =   template_path
+        self.template_path = template_path
 
         if self.debug_path:
             makedirs(self.debug_path, exist_ok=True)
