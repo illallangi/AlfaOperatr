@@ -2,9 +2,9 @@ import logging
 
 BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
 
-#The background is set with 40 plus the number of the color, and the foreground with 30
+# The background is set with 40 plus the number of the color, and the foreground with 30
 
-#These are the sequences need to get colored ouput
+# These are the sequences need to get colored ouput
 RESET_SEQ = "\033[0m"
 COLOR_SEQ = "\033[1;%dm"
 BOLD_SEQ = "\033[1m"
@@ -65,12 +65,7 @@ class AlfaLog:
     @staticmethod
     def get_logger(logger_name, log_level):
         if logger_name not in loggers.keys():
-            #formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s')
-            #handler = logging.StreamHandler(sys.stdout)
-            #handler.setFormatter(formatter)
-            #logger = logging.getLogger(logger_name)
             logger = ColoredLogger(logger_name)
             logger.setLevel(log_level)
-            #logger.addHandler(handler)
             loggers[logger_name] = logger
         return loggers.get(logger_name)
