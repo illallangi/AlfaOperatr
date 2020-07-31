@@ -44,6 +44,7 @@ class ColoredFormatter(logging.Formatter):
 class ColoredLogger(logging.Logger):
     FORMAT = "[$BOLD%(name)-50s$RESET][%(levelname)-18s]    %(message)s ($BOLD%(filename)s$RESET:%(lineno)d)"
     COLOR_FORMAT = formatter_message(FORMAT, True)
+
     def __init__(self, name):
         logging.Logger.__init__(self, name, logging.DEBUG)
 
