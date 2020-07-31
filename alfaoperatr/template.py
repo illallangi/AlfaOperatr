@@ -1,15 +1,18 @@
-from yarl import URL
-from asyncio import Queue, gather, sleep, get_event_loop
-import os
 import json
-import yaml
-import six
+import os
+from asyncio import Queue, gather, get_event_loop, sleep
 
 from aiohttp import ClientSession
 
+import six
+
+import yaml
+
+from yarl import URL
+
+from .jinja import AlfaJinja
 from .log import AlfaLog
 from .producer import AlfaProducer
-from .jinja import AlfaJinja
 
 
 class AlfaTemplate:
@@ -21,10 +24,10 @@ class AlfaTemplate:
         self.logger = AlfaLog.get_logger(f'AlfaTemplate({alfa_template["metadata"]["name"]})', self.config.log_level) if logger is None else logger
 
     async def loop(self):
-        self.logger.info(f'loop starting')
+        self.logger.info('loop starting')
         self.task = gather(*self.get_coroutines())
         await self.task
-        self.logger.info(f'loop completed')
+        self.logger.info('loop completed')
 
     def get_coroutines(self):
         yield AlfaTemplateConsumer(
@@ -42,10 +45,10 @@ class AlfaTemplate:
                 config=self.config).loop()
 
     def __del__(self):
-        self.logger.info(f'__del__ starting')
+        self.logger.info('__del__ starting')
         if not get_event_loop().is_closed() and self.task is not None:
             self.task.cancel()
-        self.logger.info(f'__del__ completed')
+        self.logger.info('__del__ completed')
 
 
 class AlfaTemplateConsumer:
@@ -63,7 +66,7 @@ class AlfaTemplateConsumer:
 
     async def loop(self):
         while True:
-            self.logger.debug(f'Sleeping until next event')
+            self.logger.debug('Sleeping until next event')
             await self.queue.get()
             self.logger.info(f'Consumer awaiting cooldown for {self.config.cooldown} seconds')
             await sleep(self.config.cooldown)
@@ -84,7 +87,7 @@ class AlfaTemplateConsumer:
 
     async def consume(self):
         try:
-            self.logger.info(f'Getting Items')
+            self.logger.info('Getting Items')
             items = list(await self.get_items())
             self.logger.info(f' - Retrieved {len(items)} Items')
             if self.config.debug_path:
@@ -95,7 +98,7 @@ class AlfaTemplateConsumer:
             return
 
         try:
-            self.logger.info(f'Rendering Template')
+            self.logger.info('Rendering Template')
             j2result = self.jinja.render(
                 self.template,
                 items=items,
@@ -117,7 +120,7 @@ class AlfaTemplateConsumer:
             return
 
         try:
-            self.logger.info(f'Loading Objects from Rendered Template')
+            self.logger.info('Loading Objects from Rendered Template')
             renders = list(yaml.load_all(j2result, Loader=yaml.FullLoader))
             self.logger.info(f' - Loaded {len(renders)} Items')
             if self.config.debug_path:
@@ -202,9 +205,9 @@ class AlfaTemplateConsumer:
                                     if self.config.debug_path:
                                         with open(os.path.join(self.config.debug_path, f'{item_put["metadata"].get("namespace","cluster")}-{item_put["metadata"]["name"]}-{item_put["kind"]}-{item_put["metadata"]["resourceVersion"]}.yaml'), 'w') as outfile:
                                             yaml.dump(item_put, outfile)
-                                    self.logger.info(f'Updated {render["kind"]} {render["metadata"].get("namespace","cluster")}\{render["metadata"]["name"]}, from resourceVersion {item_get["metadata"]["resourceVersion"]} to {item_put["metadata"]["resourceVersion"]}')
+                                    self.logger.info(f'Updated {render["kind"]} {render["metadata"].get("namespace","cluster")}\\{render["metadata"]["name"]}, from resourceVersion {item_get["metadata"]["resourceVersion"]} to {item_put["metadata"]["resourceVersion"]}')
                                 else:
-                                    self.logger.info(f'No change to {render["kind"]} {render["metadata"].get("namespace","cluster")}\{render["metadata"]["name"]}, resourceVersion still {item_get["metadata"]["resourceVersion"]}')
+                                    self.logger.info(f'No change to {render["kind"]} {render["metadata"].get("namespace","cluster")}\\{render["metadata"]["name"]}, resourceVersion still {item_get["metadata"]["resourceVersion"]}')
                         except Exception as e:
                             self.logger.error(f'Error Updating {render["kind"]}: {repr(e)}')
                             continue

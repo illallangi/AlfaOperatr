@@ -1,5 +1,4 @@
 from asyncio import Queue, gather, get_event_loop
-
 from json import dumps
 
 from aiohttp import ClientSession

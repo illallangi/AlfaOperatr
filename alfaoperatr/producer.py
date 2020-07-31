@@ -1,11 +1,10 @@
-from yarl import URL
-
-from aiohttp import ClientSession
-
+import json
 from asyncio import Queue, sleep
 from asyncio.exceptions import TimeoutError
 
-import json
+from aiohttp import ClientSession
+
+from yarl import URL
 
 from .log import AlfaLog
 

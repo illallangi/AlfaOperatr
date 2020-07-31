@@ -1,13 +1,17 @@
 import base64
-import jinja2
-import jmespath
 import os
-import yaml
-
 from hashlib import sha256
+
+import jinja2
+
+import jmespath
 from jmespath import functions
+
 from more_itertools import one
+
 from netaddr import IPAddress
+
+import yaml
 
 from .log import AlfaLog
 
@@ -28,7 +32,7 @@ class AlfaJinja:
         self.environment.filters["path_join"] = path_join
         self.environment.filters["merge"] = merge
         self.environment.filters["alfa_query"] = alfa_query
-        self.logger = AlfaLog.get_logger(f'AlfaJinja()', self.config.log_level) if logger is None else logger
+        self.logger = AlfaLog.get_logger('AlfaJinja()', self.config.log_level) if logger is None else logger
 
     def render(self, template, **kwargs):
         try:
