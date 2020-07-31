@@ -3,6 +3,7 @@ import os
 from hashlib import sha256
 
 import jinja2
+from jinja2.ext import Extension
 
 import jmespath
 from jmespath import functions
@@ -19,26 +20,23 @@ from .log import AlfaLog
 class AlfaJinja:
     def __init__(self, config, logger=None):
         self.config = config
-        self.environment = jinja2.Environment(loader=jinja2.BaseLoader, trim_blocks=True, lstrip_blocks=True, extensions=["jinja2_ansible_filters.AnsibleCoreFiltersExtension"])
+        self.environment = jinja2.Environment(
+            loader=jinja2.BaseLoader,
+            trim_blocks=True,
+            lstrip_blocks=True,
+            extensions=[
+                "jinja2_ansible_filters.AnsibleCoreFiltersExtension",
+                "alfaoperatr.jinja.AlfaJinjaFiltersExtension",
+            ])
         self.environment.tests["is_subset"] = is_subset
         self.environment.tests["is_superset"] = is_superset
-        self.environment.filters["b64decode"] = b64decode
-        self.environment.filters["ipaddr"] = ipaddr
-        self.environment.filters["json_query"] = json_query
-        self.environment.filters["json_query_one"] = json_query_one
-        self.environment.filters["json_query_unique"] = json_query_unique
-        self.environment.filters["unique_dict"] = unique_dict
-        self.environment.filters["cheap_hash"] = cheap_hash
-        self.environment.filters["path_join"] = path_join
-        self.environment.filters["merge"] = merge
-        self.environment.filters["alfa_query"] = alfa_query
         self.logger = AlfaLog.get_logger('AlfaJinja()', self.config.log_level) if logger is None else logger
 
     def render(self, template, **kwargs):
         try:
             jinja2_template = self.environment.from_string(source=template)
         except jinja2.TemplateSyntaxError as e:
-            self.logger.error(f'Template Syntax Error Loading Template: {e} ({self.metadata["name"]}:{e.lineno})')
+            self.logger.error(f'Template Syntax Error Loading Template: {e}:{e.lineno})')
             return None
         except Exception as e:
             self.logger.error(f'Unknown Exception Loading Template: {repr(e)}')
@@ -47,13 +45,28 @@ class AlfaJinja:
         try:
             jinja2_result = jinja2_template.render(**kwargs)
         except jinja2.TemplateSyntaxError as e:
-            self.logger.error(f'Template Syntax Error Rendering Template: {e} ({self.metadata["name"]}:{e.lineno})')
+            self.logger.error(f'Template Syntax Error Rendering Template: {e}:{e.lineno})')
             return None
         except Exception as e:
             self.logger.error(f'Unknown Exception Rendering Template: {repr(e)}')
             return None
 
         return jinja2_result.strip()
+
+
+class AlfaJinjaFiltersExtension(Extension):
+    def __init__(self, environment):
+        super().__init__(environment)
+        environment.filters["b64decode"] = b64decode
+        environment.filters["ipaddr"] = ipaddr
+        environment.filters["json_query"] = json_query
+        environment.filters["json_query_one"] = json_query_one
+        environment.filters["json_query_unique"] = json_query_unique
+        environment.filters["unique_dict"] = unique_dict
+        environment.filters["cheap_hash"] = cheap_hash
+        environment.filters["path_join"] = path_join
+        environment.filters["merge"] = merge
+        environment.filters["alfa_query"] = alfa_query
 
 
 # https://stackoverflow.com/posts/18335110/timeline
@@ -213,8 +226,8 @@ def alfa_query(
                     "ownerReferences": [
                         {{
                             "apiVersion": apiVersion,
-                            "blockOwnerDeletion": true,
-                            "controller": false,
+                            "blockOwnerDeletion": `true`,
+                            "controller": `false`,
                             "kind": kind,
                             "name": item.name,
                             "uid": item.uid
