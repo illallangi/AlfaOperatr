@@ -57,7 +57,7 @@ logging.getLogger('apscheduler').setLevel(logging.ERROR)
 loggers = {}
 logging.setLoggerClass(ColoredLogger)
 
-class Log:
+class AlfaLog:
   @staticmethod
   def get_logger(logger_name, log_level):
     if logger_name not in loggers.keys():

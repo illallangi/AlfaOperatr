@@ -4,7 +4,7 @@ from asyncio import Queue, gather, sleep
 from asyncio.exceptions import TimeoutError
 import json
 
-from .log import Log
+from .log import AlfaLog
 
 class AlfaProducer:
   def __init__(self, kind, config, session = None, resource_version = None, queue = None, logger = None):
@@ -13,7 +13,7 @@ class AlfaProducer:
     self.resource_version = resource_version
     self.session = ClientSession() if session is None else session
     self.queue = Queue() if queue is None else queue
-    self.logger = Log.get_logger(f'AlfaProducer({self.kind})', self.config.log_level) if logger is None else logger
+    self.logger = AlfaLog.get_logger(f'AlfaProducer({self.kind})', self.config.log_level) if logger is None else logger
 
   async def loop(self):
     while True:

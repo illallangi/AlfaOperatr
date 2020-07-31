@@ -14,8 +14,7 @@ from more_itertools import one
 from netaddr import IPAddress
 from aiohttp import ClientSession
 
-from .log import Log
-from .config import Config
+from .log import AlfaLog
 from .producer import AlfaProducer
 from .jinja import AlfaJinja
 
@@ -25,7 +24,7 @@ class AlfaTemplate:
     self.config = config
     self.session = ClientSession() if session is None else session
     self.queue = Queue() if queue is None else queue
-    self.logger = Log.get_logger(f'AlfaTemplate({alfa_template["metadata"]["name"]})', self.config.log_level) if logger is None else logger
+    self.logger = AlfaLog.get_logger(f'AlfaTemplate({alfa_template["metadata"]["name"]})', self.config.log_level) if logger is None else logger
 
   async def loop(self):
     self.logger.info(f'loop starting')
@@ -65,7 +64,7 @@ class AlfaTemplateConsumer:
     
     self.session = ClientSession() if session is None else session
     self.queue = Queue() if queue is None else queue
-    self.logger = Log.get_logger(f'AlfaTemplateConsumer({alfa_template["metadata"]["name"]})', self.config.log_level) if logger is None else logger
+    self.logger = AlfaLog.get_logger(f'AlfaTemplateConsumer({alfa_template["metadata"]["name"]})', self.config.log_level) if logger is None else logger
 
   async def loop(self):
     while True:

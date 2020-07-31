@@ -5,9 +5,9 @@ from requests import request
 from yarl import URL
 from re import compile, Pattern
 
-from .log import Log
+from .log import AlfaLog
 
-class Config(Mapping):
+class AlfaConfig(Mapping):
   def __init__(self,
                api_proxy = 'http://localhost:8001',
                app_filter = '.*',
@@ -22,7 +22,7 @@ class Config(Mapping):
     self.cooldown =        cooldown
     self.debug_path =      debug_path
     self.log_level =       log_level
-    self.logger =          Log.get_logger(f'Config()', log_level)     if logger is None else logger
+    self.logger =          AlfaLog.get_logger(f'Config()', log_level)     if logger is None else logger
     self.template_filter = template_filter                            if isinstance(template_filter, Pattern) else compile(template_filter)
     self.template_path =   template_path
 

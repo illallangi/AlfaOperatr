@@ -1,5 +1,5 @@
 import click
-from .config import Config
+from .config import AlfaConfig
 from .operator import AlfaOperator
 
 @click.command(context_settings={"auto_envvar_prefix": "ALFA"})
@@ -18,7 +18,7 @@ def main(
     log_level,
     template_filter,
     template_path):
-  config = Config(
+  config = AlfaConfig(
     api_proxy=api_proxy,
     app_filter=app_filter,
     cooldown=cooldown,

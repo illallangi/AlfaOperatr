@@ -4,7 +4,7 @@ import os
 
 from jmespath import functions
 
-from .log import Log
+from .log import AlfaLog
 
 class AlfaJinja:
   def __init__(self, config, logger = None):
@@ -22,7 +22,7 @@ class AlfaJinja:
     self.environment.filters["path_join"] = path_join
     self.environment.filters["merge"] = merge
     self.environment.filters["alfa_query"] = alfa_query
-    self.logger = Log.get_logger(f'AlfaJinja()', self.config.log_level) if logger is None else logger
+    self.logger = AlfaLog.get_logger(f'AlfaJinja()', self.config.log_level) if logger is None else logger
 
   def render(self, template, **kwargs):
     try:

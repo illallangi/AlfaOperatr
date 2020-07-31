@@ -1,7 +1,8 @@
 from aiohttp import ClientSession
 from asyncio import Queue, get_event_loop, gather
 from json import dumps
-from .log import Log
+
+from .log import AlfaLog
 from .template import AlfaTemplate
 from .producer import AlfaProducer
 
@@ -10,7 +11,7 @@ class AlfaController:
     self.config = config
     self.session = ClientSession() if session is None else session
     self.queue = Queue() if queue is None else queue
-    self.logger = Log.get_logger(f'AlfaController()', self.config.log_level) if logger is None else logger
+    self.logger = AlfaLog.get_logger(f'AlfaController()', self.config.log_level) if logger is None else logger
 
   async def loop(self):
     self.logger.info(f'loop starting')
@@ -45,7 +46,7 @@ class AlfaControllerConsumer:
     self.config = config
     self.session = ClientSession() if session is None else session
     self.queue = Queue() if queue is None else queue
-    self.logger = Log.get_logger(f'AlfaControllerConsumer()', self.config.log_level) if logger is None else logger
+    self.logger = AlfaLog.get_logger(f'AlfaControllerConsumer()', self.config.log_level) if logger is None else logger
     self.controllers = {}
 
   async def loop(self):
