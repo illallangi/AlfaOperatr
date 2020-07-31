@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from difflib import get_close_matches
-from os import environ, makedirs
+from os import makedirs
 from requests import request
 from yarl import URL
 from re import compile, Pattern

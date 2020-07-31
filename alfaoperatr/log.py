@@ -1,6 +1,4 @@
 import logging
-import os
-import sys
 
 BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
 

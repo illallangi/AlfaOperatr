@@ -1,6 +1,6 @@
 from yarl import URL
 from aiohttp import ClientSession
-from asyncio import Queue, gather, sleep
+from asyncio import Queue, sleep
 from asyncio.exceptions import TimeoutError
 import json
 

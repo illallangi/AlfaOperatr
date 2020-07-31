@@ -1,17 +1,10 @@
 from yarl import URL
 from asyncio import Queue, gather, sleep, get_event_loop
-import base64
 import os
-import distutils.util
 import json
-import sys
 import yaml
 import six
-import re
-from hashlib import sha256
-from more_itertools import one
 
-from netaddr import IPAddress
 from aiohttp import ClientSession
 
 from .log import AlfaLog
