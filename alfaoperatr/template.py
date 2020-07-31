@@ -204,8 +204,8 @@ class AlfaTemplateConsumer:
                                     self.logger.error(f'HTTP PUT {url} failed: {item_put["message"]} {json.dumps(item_put)}')
                                     continue
                                 if "resourceVersion" not in item_put["metadata"] or \
-                                    "resourceVersion" not in item_get["metadata"] or \
-                                    item_put["metadata"].get("resourceVersion", None) != item_get["metadata"].get("resourceVersion", None):
+                                        "resourceVersion" not in item_get["metadata"] or \
+                                        item_put["metadata"].get("resourceVersion", None) != item_get["metadata"].get("resourceVersion", None):
                                     if self.config.debug_path:
                                         with open(os.path.join(self.config.debug_path, f'{item_put["metadata"].get("namespace","cluster")}-{item_put["metadata"]["name"]}-{item_put["kind"]}-{item_put["metadata"]["resourceVersion"]}.yaml'), 'w') as outfile:
                                             yaml.dump(item_put, outfile)
