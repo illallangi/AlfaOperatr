@@ -1,6 +1,7 @@
 import json
 import os
 from asyncio import Queue, gather, get_event_loop, sleep
+from functools import reduce
 
 from aiohttp import ClientSession
 
@@ -84,17 +85,19 @@ class AlfaTemplateConsumer:
         return items
 
     def get_indexes(self, item):
-        if self.alfa_template['spec']['kinds']['child']['kind'].lower() not in item['spec']:
+        if self.alfa_template['spec']['filter'] == '':
             return [None]
 
-        if isinstance(item['spec'][self.alfa_template['spec']['kinds']['child']['kind'].lower()], bool) and \
-                not item['spec'][self.alfa_template['spec']['kinds']['child']['kind'].lower()]:
+        value = reduce(lambda d, key: d.get(key) if d else None, self.alfa_template['spec']['filter'].strip('.').split('.'), item)
+
+        if value is None:
             return []
 
-        if isinstance(item['spec'][self.alfa_template['spec']['kinds']['child']['kind'].lower()], dict) and \
-                'count' in item['spec'][self.alfa_template['spec']['kinds']['child']['kind'].lower()] and \
-                isinstance(item['spec'][self.alfa_template['spec']['kinds']['child']['kind'].lower()]['count'], int):
-            return range(0, item['spec'][self.alfa_template['spec']['kinds']['child']['kind'].lower()]['count'])
+        if isinstance(value, bool) and not value:
+            return []
+
+        if isinstance(value, int):
+            return range(0, value)
 
         return [None]
 

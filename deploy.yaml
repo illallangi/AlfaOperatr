@@ -24,6 +24,9 @@ spec:
                 pattern: ^(Cluster|Namespace|Object|Child)$
                 type: string
                 default: Object
+              filter:
+                type: string
+                default: ''
               kinds:
                 type: object
                 properties:
