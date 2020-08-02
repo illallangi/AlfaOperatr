@@ -20,15 +20,73 @@ spec:
         properties:
           spec:
             properties:
+              scope:
+                pattern: ^(Cluster|Namespace|Object|Child)$
+                type: string
+                default: Object
+              kinds:
+                type: object
+                properties:
+                  parent:
+                    type: object
+                    properties:
+                      kind:
+                        type: string
+                    required:
+                    - kind
+                  child:
+                    type: object
+                    properties:
+                      kind:
+                        type: string
+                    required:
+                    - kind
+                  monitored:
+                    default: []
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        kind:
+                          type: string
+                      required:
+                      - kind
+                required:
+                - parent
+                - child
               template:
                 type: string
-              kinds:
-                items:
-                  type: string
-                type: array
               update:
                 default: true
                 type: boolean
+              labels:
+                type: object
+                default:
+                  name: 'app.kubernetes.io/name'
+                  instance: 'app.kubernetes.io/instance'
+                  component: 'app.kubernetes.io/component'
+                  managed-by: 'app.kubernetes.io/managed-by'
+                  part-of: 'app.kubernetes.io/part-of'
+                  scope: 'controllers.illallangi.enterprises/alfatemplate-scope'
+                properties:
+                  name:
+                    type: string
+                    default: 'app.kubernetes.io/name'
+                  part-of:
+                    type: string
+                    default: 'app.kubernetes.io/part-of'
+                  instance:
+                    type: string
+                    default: 'app.kubernetes.io/instance'
+                  component:
+                    type: string
+                    default: 'app.kubernetes.io/component'
+                  managed-by:
+                    type: string
+                    default: 'app.kubernetes.io/managed-by'
+                  scope:
+                    type: string
+                    default: 'controllers.illallangi.enterprises/alfatemplate-scope'
             required:
             - kinds
             - template

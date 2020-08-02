@@ -36,7 +36,10 @@ class AlfaTemplate:
             queue=self.queue,
             config=self.config).loop()
 
-        for kind in self.alfa_template["spec"]["kinds"]:
+        for kind in [
+            *[self.alfa_template['spec']['kinds']['parent']['kind']],
+            *[kind['kind'] for kind in self.alfa_template['spec']['kinds']['monitored']]
+        ]:
             yield AlfaProducer(
                 kind=kind,
                 resource_version=None,
@@ -53,13 +56,9 @@ class AlfaTemplate:
 
 class AlfaTemplateConsumer:
     def __init__(self, alfa_template, config, jinja=None, session=None, queue=None, logger=None):
-        self.kinds = alfa_template["spec"]["kinds"]
-        self.template = alfa_template["spec"]["template"]
-        self.metadata = alfa_template["metadata"]
-        self.update = alfa_template["spec"]["update"]
+        self.alfa_template = alfa_template
         self.config = config
         self.jinja = AlfaJinja(config) if jinja is None else jinja
-
         self.session = ClientSession() if session is None else session
         self.queue = Queue() if queue is None else queue
         self.logger = AlfaLog.get_logger(f'AlfaTemplateConsumer({alfa_template["metadata"]["name"]})', self.config.log_level) if logger is None else logger
@@ -74,65 +73,284 @@ class AlfaTemplateConsumer:
                 self.queue.get_nowait()
             await self.consume()
 
-    async def get_items(self):
+    async def get_items(self, kind):
         items = []
-        for kind in self.kinds:
-            async with self.session.request('get', self.config[kind]["url"]) as item_collection_response:
-                item_collection = await item_collection_response.json()
-                for item in item_collection["items"]:
-                    async with self.session.request('get', URL(item_collection_response.url).with_path(item["metadata"]["selfLink"])) as item_response:
-                        item = await item_response.json()
-                        items.append(item)
+        async with self.session.request('get', self.config[kind]["url"]) as item_collection_response:
+            item_collection = await item_collection_response.json()
+            for item in item_collection["items"]:
+                async with self.session.request('get', URL(item_collection_response.url).with_path(item["metadata"]["selfLink"])) as item_response:
+                    item = await item_response.json()
+                    items.append(item)
         return items
+
+    def get_indexes(self, item):
+        if self.alfa_template['spec']['kinds']['child']['kind'].lower() not in item['spec']:
+            return [None]
+
+        if isinstance(item['spec'][self.alfa_template['spec']['kinds']['child']['kind'].lower()], bool) and \
+                not item['spec'][self.alfa_template['spec']['kinds']['child']['kind'].lower()]:
+            return []
+
+        if isinstance(item['spec'][self.alfa_template['spec']['kinds']['child']['kind'].lower()], dict) and \
+                'count' in item['spec'][self.alfa_template['spec']['kinds']['child']['kind'].lower()] and \
+                isinstance(item['spec'][self.alfa_template['spec']['kinds']['child']['kind'].lower()]['count'], int):
+            return range(0, item['spec'][self.alfa_template['spec']['kinds']['child']['kind'].lower()]['count'])
+
+        return [None]
 
     async def consume(self):
         try:
             self.logger.info('Getting Items')
-            items = list(await self.get_items())
-            self.logger.info(f' - Retrieved {len(items)} Items')
-            if self.config.debug_path:
-                with open(os.path.join(self.config.debug_path, "alfatemplate-" + self.metadata["name"] + "-input.json"), 'w') as outfile:
-                    json.dump({'kinds': self.kinds, 'items': items, 'template': self.template, 'metadata': self.metadata}, outfile, indent=2)
+            items = {
+                kind: await self.get_items(kind)
+                for kind in [
+                    *[self.alfa_template['spec']['kinds']['parent']['kind']],
+                    *[kind['kind'] for kind in self.alfa_template['spec']['kinds']['monitored']]
+                ]
+            }
         except Exception as e:
             self.logger.error(f'Error Getting Items: {repr(e)}')
             return
 
+        for kind in [
+            *[self.alfa_template['spec']['kinds']['parent']['kind']],
+            *[kind['kind'] for kind in self.alfa_template['spec']['kinds']['monitored']]
+        ]:
+            self.logger.info(f' - Retrieved {len(items[kind])} {kind}')
+
+        children = unique_dict(
+            [
+                {
+                    'kind': self.config[self.alfa_template['spec']['kinds']['child']['kind']]['kind'],
+                    'apiVersion': '/'.join([
+                        self.config[self.alfa_template['spec']['kinds']['child']['kind']]['group'],
+                        self.config[self.alfa_template['spec']['kinds']['child']['kind']]['version']
+                    ]),
+                    'metadata': {
+                        'namespace': o['metadata']['namespace'],
+                        'labels': {
+                            self.alfa_template['spec']['labels']['name']:
+                                o.get('metadata', {})
+                                 .get('labels', {})
+                                 .get(self.alfa_template['spec']['labels']['name'],
+                                      self.alfa_template
+                                          .get('metadata', {})
+                                          .get('labels', {})
+                                          .get(self.alfa_template['spec']['labels']['name'])),
+                            self.alfa_template['spec']['labels']['part-of']:
+                                o.get('metadata', {})
+                                 .get('labels', {})
+                                 .get(self.alfa_template['spec']['labels']['part-of'],
+                                      self.alfa_template
+                                          .get('metadata', {})
+                                          .get('labels', {})
+                                          .get(self.alfa_template['spec']['labels']['part-of'], o['metadata']['name'])),
+                            self.alfa_template['spec']['labels']['instance']:
+                                '-'.join(
+                                    filter(
+                                        None,
+                                        [
+                                            o.get('metadata', {})
+                                             .get('labels', {})
+                                             .get(self.alfa_template['spec']['labels']['instance'],
+                                                  self.alfa_template
+                                                      .get('metadata', {})
+                                                      .get('labels', {})
+                                                      .get(self.alfa_template['spec']['labels']['instance'], o['metadata']['name'])),
+                                            None if i is None else f'{i:02}',
+                                        ]
+                                    )
+                            ),
+                            self.alfa_template['spec']['labels']['component']:
+                                o.get('metadata', {})
+                                 .get('labels', {})
+                                 .get(self.alfa_template['spec']['labels']['component'],
+                                      self.alfa_template
+                                          .get('metadata', {})
+                                          .get('labels', {})
+                                          .get(self.alfa_template['spec']['labels']['component'])),
+                            self.alfa_template['spec']['labels']['scope']:
+                                self.alfa_template['spec']['scope'],
+                            self.alfa_template['spec']['labels']['managed-by']:
+                                self.alfa_template['metadata']['name']
+                        },
+                        'name': '-'.join(
+                            filter(
+                                None,
+                                [
+                                    o.get('metadata', {})
+                                    .get('labels', {})
+                                    .get(self.alfa_template['spec']['labels']['name'],
+                                         self.alfa_template
+                                             .get('metadata', {})
+                                             .get('labels', {})
+                                             .get(self.alfa_template['spec']['labels']['name'])),
+                                    o.get('metadata', {})
+                                    .get('labels', {})
+                                    .get(self.alfa_template['spec']['labels']['instance'],
+                                         self.alfa_template
+                                             .get('metadata', {})
+                                             .get('labels', {})
+                                             .get(self.alfa_template['spec']['labels']['instance'],
+                                                  o['metadata']['name'])),
+                                    None if i is None else f'{i:02}',
+                                    o.get('metadata', {})
+                                    .get('labels', {})
+                                    .get(self.alfa_template['spec']['labels']['component'],
+                                         self.alfa_template
+                                             .get('metadata', {})
+                                             .get('labels', {})
+                                             .get(self.alfa_template['spec']['labels']['component'])),
+                                ]
+                            )
+                        )
+                    },
+                    'index':
+                    {
+                        'int': i,
+                        'string': None if i is None else f'{i:02}'
+                    },
+                    'spec': o['spec']
+                }
+                for o in items[self.alfa_template['spec']['kinds']['parent']['kind']]
+                for i in self.get_indexes(o)
+            ]
+        )
+
+        objects = unique_dict(
+            [
+                {
+                    'kind': o['kind'],
+                    'apiVersion': o['apiVersion'],
+                    'metadata': {
+                        'namespace': o['metadata']['namespace'],
+                        'labels': {
+                            self.alfa_template['spec']['labels']['name']: o['metadata']['labels'][self.alfa_template['spec']['labels']['name']],
+                            self.alfa_template['spec']['labels']['instance']: o['metadata']['labels'][self.alfa_template['spec']['labels']['part-of']],
+                            self.alfa_template['spec']['labels']['component']: o['metadata']['labels'][self.alfa_template['spec']['labels']['component']],
+                            self.alfa_template['spec']['labels']['scope']: o['metadata']['labels'][self.alfa_template['spec']['labels']['scope']],
+                            self.alfa_template['spec']['labels']['managed-by']: o['metadata']['labels'][self.alfa_template['spec']['labels']['managed-by']],
+                        },
+                        'name': '-'.join(
+                            filter(
+                                None,
+                                [
+                                    o['metadata']['labels'][self.alfa_template['spec']['labels']['name']],
+                                    o['metadata']['labels'][self.alfa_template['spec']['labels']['part-of']],
+                                    o['metadata']['labels'][self.alfa_template['spec']['labels']['component']]
+                                ]
+                            )
+                        )
+                    },
+                    'spec': o['spec']
+                }
+                for o in children
+            ]
+        )
+
+        namespaces = unique_dict(
+            [
+                {
+                    'kind': o['kind'],
+                    'apiVersion': o['apiVersion'],
+                    'metadata': {
+                        'namespace': o['metadata']['namespace'],
+                        'labels': {
+                            self.alfa_template['spec']['labels']['name']: o['metadata']['labels'][self.alfa_template['spec']['labels']['name']],
+                            self.alfa_template['spec']['labels']['component']: o['metadata']['labels'][self.alfa_template['spec']['labels']['component']],
+                            self.alfa_template['spec']['labels']['scope']: o['metadata']['labels'][self.alfa_template['spec']['labels']['scope']],
+                            self.alfa_template['spec']['labels']['managed-by']: o['metadata']['labels'][self.alfa_template['spec']['labels']['managed-by']],
+                        },
+                        'name': '-'.join(
+                            filter(
+                                None,
+                                [
+                                    o['metadata']['labels'][self.alfa_template['spec']['labels']['name']],
+                                    o['metadata']['labels'][self.alfa_template['spec']['labels']['component']]
+                                ]
+                            )
+                        )
+                    },
+                    'spec': o['spec']
+                }
+                for o in objects
+            ]
+        )
+
+        clusters = unique_dict(
+            [
+                {
+                    'kind': o['kind'],
+                    'apiVersion': o['apiVersion'],
+                    'metadata': {
+                        'labels': {
+                            self.alfa_template['spec']['labels']['name']: o['metadata']['labels'][self.alfa_template['spec']['labels']['name']],
+                            self.alfa_template['spec']['labels']['component']: o['metadata']['labels'][self.alfa_template['spec']['labels']['component']],
+                            self.alfa_template['spec']['labels']['scope']: o['metadata']['labels'][self.alfa_template['spec']['labels']['scope']],
+                            self.alfa_template['spec']['labels']['managed-by']: o['metadata']['labels'][self.alfa_template['spec']['labels']['managed-by']],
+                        },
+                        'name': '-'.join(
+                            filter(
+                                None,
+                                [
+                                    o['metadata']['labels'][self.alfa_template['spec']['labels']['name']],
+                                    o['metadata']['labels'][self.alfa_template['spec']['labels']['component']]
+                                ]
+                            )
+                        )
+                    },
+                    'spec': o['spec']
+                }
+                for o in namespaces
+            ]
+        )
+
+        inputs = {
+            'Cluster': clusters,
+            'Namespace': namespaces,
+            'Object': objects,
+            'Child': children
+        }.get(self.alfa_template['spec']['scope'])
+
+        if self.config.debug_path:
+            with open(os.path.join(self.config.debug_path, "alfatemplate-" + self.alfa_template["metadata"]["name"] + "-input.yaml"), 'w') as outfile:
+                outfile.write(yaml.dump_all(inputs))
+
         try:
             self.logger.info('Rendering Template')
-            j2result = self.jinja.render(
-                self.template,
-                items=items,
-                metadata=self.metadata,
-                objects=[
-                    {
-                        'item': {i: item.get('metadata', {})[i] for i in item.get('metadata', {}) if i in ['annotations', 'labels', 'name', 'namespace', 'selfLink', 'uid']},
-                        'template': {i: self.metadata[i] for i in self.metadata if i in ['annotations', 'labels', 'name', 'namespace', 'selfLink', 'uid']},
-                        'spec': item.get('spec', {}),
-                        'kind': item.get('kind', ''),
-                        'apiVersion': item.get('apiVersion', '')
-                    } for item in items
+            renders = unique_dict(
+                [
+                    merge(
+                        yaml.load(
+                            self.jinja.render(
+                                self.alfa_template['spec']['template'],
+                                items=items,
+                                parent=self.config[self.alfa_template['spec']['kinds']['parent']['kind']],
+                                child=self.config[self.alfa_template['spec']['kinds']['child']['kind']],
+                                item=o,
+                                **o
+                            ),
+                            Loader=yaml.FullLoader
+                        ),
+                        {
+                            i: o[i]
+                            for i in o
+                            if i in ['apiVersion', 'kind', 'metadata']
+                        }
+                    )
+                    for o in inputs
                 ]
             )
-            if j2result is None:
-                return
-            self.logger.info(f' - Rendered {len(j2result)} bytes')
+            self.logger.info(f' - Rendered {len(renders)} items')
+            if self.config.debug_path:
+                with open(os.path.join(self.config.debug_path, "alfatemplate-" + self.alfa_template["metadata"]["name"] + "-result.yaml"), 'w') as outfile:
+                    outfile.write(yaml.dump_all(renders))
         except Exception as e:
             self.logger.error(f'Unknown Exception Rendering Template: {repr(e)}')
             return
 
-        try:
-            self.logger.info('Loading Objects from Rendered Template')
-            renders = list(yaml.load_all(j2result, Loader=yaml.FullLoader))
-            self.logger.info(f' - Loaded {len(renders)} Items')
-            if self.config.debug_path:
-                with open(os.path.join(self.config.debug_path, "alfatemplate-" + self.metadata["name"] + "-result.yaml"), 'w') as outfile:
-                    outfile.write(j2result)
-        except Exception as e:
-            self.logger.error(f'Unknown Exception Loading Objects from Rendered Template: {repr(e)}')
-            return
-
         for render in renders:
-            if render is None or "kind" not in render:
+            if render is None or "kind" not in render or self.config.debug_path:
                 continue
             try:
                 url = URL(self.config[render["kind"]]["url"]).parent / URL(self.config[render["kind"]]["url"]).name / render["metadata"]["name"]
@@ -170,7 +388,7 @@ class AlfaTemplateConsumer:
                                 yaml.dump(item_get, outfile)
                         render["metadata"]["resourceVersion"] = item_get["metadata"]["resourceVersion"]
 
-                        if not self.update:
+                        if not self.alfa_template['spec']['update']:
                             self.logger.info(f'Not updating as update set to false {render["kind"]} {url}')
                             continue
 
@@ -215,6 +433,28 @@ class AlfaTemplateConsumer:
             except Exception as e:
                 self.logger.error(f'Error Getting Render: {repr(e)}')
                 continue
+
+
+def merge(a, b, path=None, override=True):
+    "merges b into a"
+    if path is None:
+        path = []
+    for key in b:
+        if key in a:
+            if isinstance(a[key], dict) and isinstance(b[key], dict):
+                merge(a[key], b[key], path=path + [str(key)], override=override)
+            elif a[key] == b[key]:
+                pass  # same leaf value
+            else:
+                if not override:
+                    raise Exception('Conflict at %s' % '.'.join(path + [str(key)]))
+        else:
+            a[key] = b[key]
+    return a
+
+
+def unique_dict(input):
+    return [yaml.load(y, Loader=yaml.FullLoader) for y in {yaml.dump(d) for d in input}]
 
 
 # Get around pyyaml removing leading 0s
