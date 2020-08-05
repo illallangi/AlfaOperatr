@@ -121,57 +121,82 @@ class AlfaTemplateConsumer:
         ]:
             self.logger.info(f' - Retrieved {len(items[kind])} {kind}')
 
+        self.logger.info(f" - Calculating children from {len(items[self.alfa_template['spec']['kinds']['parent']['kind']])} objects")
         children = unique_dict(
             [
                 {
                     'kind': self.config[self.alfa_template['spec']['kinds']['child']['kind']]['kind'],
                     'apiVersion': '/'.join([
-                        self.config[self.alfa_template['spec']['kinds']['child']['kind']]['group'],
-                        self.config[self.alfa_template['spec']['kinds']['child']['kind']]['version']
+                        self.config[self.alfa_template['spec']['kinds']['child']['kind']].get('group', ''),
+                        self.config[self.alfa_template['spec']['kinds']['child']['kind']].get('version', '')
                     ]),
                     'metadata': {
                         'namespace': o['metadata']['namespace'],
                         'labels': {
                             self.alfa_template['spec']['labels']['name']:
-                                o.get('metadata', {})
-                                 .get('labels', {})
-                                 .get(self.alfa_template['spec']['labels']['name'],
-                                      self.alfa_template
-                                          .get('metadata', {})
-                                          .get('labels', {})
-                                          .get(self.alfa_template['spec']['labels']['name'])),
+                            next((s for s in
+                                 [
+                                     o.get('metadata', {})
+                                     .get('labels', {})
+                                     .get(self.alfa_template['spec']['labels']['name']),
+                                     self
+                                     .alfa_template
+                                     .get('metadata', {})
+                                     .get('labels', {})
+                                     .get(self.alfa_template['spec']['labels']['name'])
+                                 ] if s),
+                                 ''),
                             self.alfa_template['spec']['labels']['part-of']:
-                                o.get('metadata', {})
-                                 .get('labels', {})
-                                 .get(self.alfa_template['spec']['labels']['part-of'],
-                                      self.alfa_template
-                                          .get('metadata', {})
-                                          .get('labels', {})
-                                          .get(self.alfa_template['spec']['labels']['part-of'], o['metadata']['name'])),
+                            next(s for s in
+                                 [
+                                     o.get('metadata', {})
+                                     .get('labels', {})
+                                     .get(self.alfa_template['spec']['labels']['part-of']),
+                                     self
+                                     .alfa_template
+                                     .get('metadata', {})
+                                     .get('labels', {})
+                                     .get(self.alfa_template['spec']['labels']['part-of']),
+                                     o
+                                     .get('metadata')
+                                     .get('name')
+                                 ] if s),
                             self.alfa_template['spec']['labels']['instance']:
                                 '-'.join(
                                     filter(
                                         None,
                                         [
-                                            o.get('metadata', {})
-                                             .get('labels', {})
-                                             .get(self.alfa_template['spec']['labels']['instance'],
-                                                  self.alfa_template
-                                                      .get('metadata', {})
-                                                      .get('labels', {})
-                                                      .get(self.alfa_template['spec']['labels']['instance'], o['metadata']['name'])),
-                                            None if i is None else f'{i:02}',
+                                            next(s for s in
+                                                 [
+                                                     o.get('metadata', {})
+                                                     .get('labels', {})
+                                                     .get(self.alfa_template['spec']['labels']['instance']),
+                                                     self
+                                                     .alfa_template
+                                                     .get('metadata', {})
+                                                     .get('labels', {})
+                                                     .get(self.alfa_template['spec']['labels']['instance']),
+                                                     o
+                                                     .get('metadata')
+                                                     .get('name')
+                                                 ] if s),
+                                            None if i is None else f'{i:02}'
                                         ]
                                     )
                             ),
                             self.alfa_template['spec']['labels']['component']:
-                                o.get('metadata', {})
-                                 .get('labels', {})
-                                 .get(self.alfa_template['spec']['labels']['component'],
-                                      self.alfa_template
-                                          .get('metadata', {})
-                                          .get('labels', {})
-                                          .get(self.alfa_template['spec']['labels']['component'])),
+                            next((s for s in
+                                 [
+                                     o.get('metadata', {})
+                                     .get('labels', {})
+                                     .get(self.alfa_template['spec']['labels']['component']),
+                                     self
+                                     .alfa_template
+                                     .get('metadata', {})
+                                     .get('labels', {})
+                                     .get(self.alfa_template['spec']['labels']['component'])
+                                 ] if s),
+                                 ''),
                             self.alfa_template['spec']['labels']['scope']:
                                 self.alfa_template['spec']['scope'],
                             self.alfa_template['spec']['labels']['managed-by']:
@@ -181,29 +206,46 @@ class AlfaTemplateConsumer:
                             filter(
                                 None,
                                 [
-                                    o.get('metadata', {})
-                                    .get('labels', {})
-                                    .get(self.alfa_template['spec']['labels']['name'],
-                                         self.alfa_template
+                                    next((s for s in
+                                         [
+                                             o.get('metadata', {})
+                                             .get('labels', {})
+                                             .get(self.alfa_template['spec']['labels']['name']),
+                                             self
+                                             .alfa_template
                                              .get('metadata', {})
                                              .get('labels', {})
-                                             .get(self.alfa_template['spec']['labels']['name'])),
-                                    o.get('metadata', {})
-                                    .get('labels', {})
-                                    .get(self.alfa_template['spec']['labels']['instance'],
-                                         self.alfa_template
+                                             .get(self.alfa_template['spec']['labels']['name'])
+                                         ] if s),
+                                         ''),
+                                    next(s for s in
+                                         [
+                                             o.get('metadata', {})
+                                             .get('labels', {})
+                                             .get(self.alfa_template['spec']['labels']['instance']),
+                                             self
+                                             .alfa_template
                                              .get('metadata', {})
                                              .get('labels', {})
-                                             .get(self.alfa_template['spec']['labels']['instance'],
-                                                  o['metadata']['name'])),
+                                             .get(self.alfa_template['spec']['labels']['instance']),
+                                             o
+                                             .get('metadata')
+                                             .get('name')
+                                         ] if s),
                                     None if i is None else f'{i:02}',
-                                    o.get('metadata', {})
-                                    .get('labels', {})
-                                    .get(self.alfa_template['spec']['labels']['component'],
-                                         self.alfa_template
+                                    next((s for s in
+                                         [
+                                             o.get('metadata', {})
+                                             .get('labels', {})
+                                             .get(self.alfa_template['spec']['labels']['component']),
+                                             self
+                                             .alfa_template
                                              .get('metadata', {})
                                              .get('labels', {})
-                                             .get(self.alfa_template['spec']['labels']['component'])),
+                                             .get(self.alfa_template['spec']['labels']['component']),
+                                             ''
+                                         ] if s),
+                                         '')
                                 ]
                             )
                         )
@@ -219,94 +261,135 @@ class AlfaTemplateConsumer:
                 for i in self.get_indexes(o)
             ]
         )
+        if self.config.debug_path:
+            with open(os.path.join(self.config.debug_path, "alfatemplate-" + self.alfa_template["metadata"]["name"] + "-children.yaml"), 'w') as outfile:
+                outfile.write(yaml.dump_all(children))
 
-        objects = unique_dict(
-            [
-                {
-                    'kind': o['kind'],
-                    'apiVersion': o['apiVersion'],
-                    'metadata': {
-                        'namespace': o['metadata']['namespace'],
-                        'labels': {
-                            self.alfa_template['spec']['labels']['name']: o['metadata']['labels'][self.alfa_template['spec']['labels']['name']],
-                            self.alfa_template['spec']['labels']['instance']: o['metadata']['labels'][self.alfa_template['spec']['labels']['part-of']],
-                            self.alfa_template['spec']['labels']['component']: o['metadata']['labels'][self.alfa_template['spec']['labels']['component']],
-                            self.alfa_template['spec']['labels']['scope']: o['metadata']['labels'][self.alfa_template['spec']['labels']['scope']],
-                            self.alfa_template['spec']['labels']['managed-by']: o['metadata']['labels'][self.alfa_template['spec']['labels']['managed-by']],
-                        },
-                        'name': '-'.join(
-                            filter(
-                                None,
-                                [
-                                    o['metadata']['labels'][self.alfa_template['spec']['labels']['name']],
-                                    o['metadata']['labels'][self.alfa_template['spec']['labels']['part-of']],
-                                    o['metadata']['labels'][self.alfa_template['spec']['labels']['component']]
-                                ]
+        self.logger.info(f" - Calculating objects from {len(children)} children")
+        objects = [
+            {
+                'children': [
+                    x
+                    for x in children
+                    if u['metadata']['labels'][self.alfa_template['spec']['labels']['name']] == x['metadata']['labels'][self.alfa_template['spec']['labels']['name']]
+                    and u['metadata']['labels'][self.alfa_template['spec']['labels']['instance']] == x['metadata']['labels'][self.alfa_template['spec']['labels']['part-of']]
+                    and u['metadata']['labels'][self.alfa_template['spec']['labels']['component']] == x['metadata']['labels'][self.alfa_template['spec']['labels']['component']]
+                ],
+                **u
+            }
+            for u in unique_dict(
+                [
+                    {
+                        'kind': o['kind'],
+                        'apiVersion': o['apiVersion'],
+                        'metadata': {
+                            'namespace': o['metadata']['namespace'],
+                            'labels': {
+                                self.alfa_template['spec']['labels']['name']: o['metadata']['labels'][self.alfa_template['spec']['labels']['name']],
+                                self.alfa_template['spec']['labels']['instance']: o['metadata']['labels'][self.alfa_template['spec']['labels']['part-of']],
+                                self.alfa_template['spec']['labels']['component']: o['metadata']['labels'][self.alfa_template['spec']['labels']['component']],
+                                self.alfa_template['spec']['labels']['scope']: o['metadata']['labels'][self.alfa_template['spec']['labels']['scope']],
+                                self.alfa_template['spec']['labels']['managed-by']: o['metadata']['labels'][self.alfa_template['spec']['labels']['managed-by']],
+                            },
+                            'name': '-'.join(
+                                filter(
+                                    None,
+                                    [
+                                        o['metadata']['labels'][self.alfa_template['spec']['labels']['name']],
+                                        o['metadata']['labels'][self.alfa_template['spec']['labels']['part-of']],
+                                        o['metadata']['labels'][self.alfa_template['spec']['labels']['component']]
+                                    ]
+                                )
                             )
-                        )
-                    },
-                    'spec': o['spec']
-                }
-                for o in children
-            ]
-        )
+                        },
+                        'spec': o['spec']
+                    }
+                    for o in children
+                ]
+            )
+        ]
+        if self.config.debug_path:
+            with open(os.path.join(self.config.debug_path, "alfatemplate-" + self.alfa_template["metadata"]["name"] + "-objects.yaml"), 'w') as outfile:
+                outfile.write(yaml.dump_all(objects))
 
-        namespaces = unique_dict(
-            [
-                {
-                    'kind': o['kind'],
-                    'apiVersion': o['apiVersion'],
-                    'metadata': {
-                        'namespace': o['metadata']['namespace'],
-                        'labels': {
-                            self.alfa_template['spec']['labels']['name']: o['metadata']['labels'][self.alfa_template['spec']['labels']['name']],
-                            self.alfa_template['spec']['labels']['component']: o['metadata']['labels'][self.alfa_template['spec']['labels']['component']],
-                            self.alfa_template['spec']['labels']['scope']: o['metadata']['labels'][self.alfa_template['spec']['labels']['scope']],
-                            self.alfa_template['spec']['labels']['managed-by']: o['metadata']['labels'][self.alfa_template['spec']['labels']['managed-by']],
-                        },
-                        'name': '-'.join(
-                            filter(
-                                None,
-                                [
-                                    o['metadata']['labels'][self.alfa_template['spec']['labels']['name']],
-                                    o['metadata']['labels'][self.alfa_template['spec']['labels']['component']]
-                                ]
+        self.logger.info(f" - Calculating namespaces from {len(objects)} objects")
+        namespaces = [
+            {
+                'objects': [
+                    x
+                    for x in objects
+                    if u['metadata']['namespace'] == x['metadata']['namespace']
+                ],
+                **u
+            }
+            for u in unique_dict(
+                [
+                    {
+                        'kind': o['kind'],
+                        'apiVersion': o['apiVersion'],
+                        'metadata': {
+                            'namespace': o['metadata']['namespace'],
+                            'labels': {
+                                self.alfa_template['spec']['labels']['name']: o['metadata']['labels'][self.alfa_template['spec']['labels']['name']],
+                                self.alfa_template['spec']['labels']['component']: o['metadata']['labels'][self.alfa_template['spec']['labels']['component']],
+                                self.alfa_template['spec']['labels']['scope']: o['metadata']['labels'][self.alfa_template['spec']['labels']['scope']],
+                                self.alfa_template['spec']['labels']['managed-by']: o['metadata']['labels'][self.alfa_template['spec']['labels']['managed-by']],
+                            },
+                            'name': '-'.join(
+                                filter(
+                                    None,
+                                    [
+                                        o['metadata']['labels'][self.alfa_template['spec']['labels']['name']],
+                                        o['metadata']['labels'][self.alfa_template['spec']['labels']['component']]
+                                    ]
+                                )
                             )
-                        )
-                    },
-                    'spec': o['spec']
-                }
-                for o in objects
-            ]
-        )
+                        }
+                    }
+                    for o in objects
+                ]
+            )
+        ]
+        if self.config.debug_path:
+            with open(os.path.join(self.config.debug_path, "alfatemplate-" + self.alfa_template["metadata"]["name"] + "-namespaces.yaml"), 'w') as outfile:
+                outfile.write(yaml.dump_all(namespaces))
 
-        clusters = unique_dict(
-            [
-                {
-                    'kind': o['kind'],
-                    'apiVersion': o['apiVersion'],
-                    'metadata': {
-                        'labels': {
-                            self.alfa_template['spec']['labels']['name']: o['metadata']['labels'][self.alfa_template['spec']['labels']['name']],
-                            self.alfa_template['spec']['labels']['component']: o['metadata']['labels'][self.alfa_template['spec']['labels']['component']],
-                            self.alfa_template['spec']['labels']['scope']: o['metadata']['labels'][self.alfa_template['spec']['labels']['scope']],
-                            self.alfa_template['spec']['labels']['managed-by']: o['metadata']['labels'][self.alfa_template['spec']['labels']['managed-by']],
-                        },
-                        'name': '-'.join(
-                            filter(
-                                None,
-                                [
-                                    o['metadata']['labels'][self.alfa_template['spec']['labels']['name']],
-                                    o['metadata']['labels'][self.alfa_template['spec']['labels']['component']]
-                                ]
+        self.logger.info(f" - Calculating clusters from {len(namespaces)} namespaces")
+        clusters = [
+            {
+                'objects': objects,
+                **u
+            }
+            for u in unique_dict(
+                [
+                    {
+                        'kind': o['kind'],
+                        'apiVersion': o['apiVersion'],
+                        'metadata': {
+                            'labels': {
+                                self.alfa_template['spec']['labels']['name']: o['metadata']['labels'][self.alfa_template['spec']['labels']['name']],
+                                self.alfa_template['spec']['labels']['component']: o['metadata']['labels'][self.alfa_template['spec']['labels']['component']],
+                                self.alfa_template['spec']['labels']['scope']: o['metadata']['labels'][self.alfa_template['spec']['labels']['scope']],
+                                self.alfa_template['spec']['labels']['managed-by']: o['metadata']['labels'][self.alfa_template['spec']['labels']['managed-by']],
+                            },
+                            'name': '-'.join(
+                                filter(
+                                    None,
+                                    [
+                                        o['metadata']['labels'][self.alfa_template['spec']['labels']['name']],
+                                        o['metadata']['labels'][self.alfa_template['spec']['labels']['component']]
+                                    ]
+                                )
                             )
-                        )
-                    },
-                    'spec': o['spec']
-                }
-                for o in namespaces
-            ]
-        )
+                        }
+                    }
+                    for o in namespaces
+                ]
+            )
+        ]
+        if self.config.debug_path:
+            with open(os.path.join(self.config.debug_path, "alfatemplate-" + self.alfa_template["metadata"]["name"] + "-clusters.yaml"), 'w') as outfile:
+                outfile.write(yaml.dump_all(clusters))
 
         inputs = {
             'Cluster': clusters,
@@ -316,7 +399,7 @@ class AlfaTemplateConsumer:
         }.get(self.alfa_template['spec']['scope'])
 
         if self.config.debug_path:
-            with open(os.path.join(self.config.debug_path, "alfatemplate-" + self.alfa_template["metadata"]["name"] + "-input.yaml"), 'w') as outfile:
+            with open(os.path.join(self.config.debug_path, "alfatemplate-" + self.alfa_template["metadata"]["name"] + "-inputs.yaml"), 'w') as outfile:
                 outfile.write(yaml.dump_all(inputs))
 
         try:
@@ -330,7 +413,16 @@ class AlfaTemplateConsumer:
                                 items=items,
                                 parent=self.config[self.alfa_template['spec']['kinds']['parent']['kind']],
                                 child=self.config[self.alfa_template['spec']['kinds']['child']['kind']],
-                                item=o,
+                                selector={
+                                    i: o['metadata']['labels'][i]
+                                    for i in o['metadata']['labels']
+                                    if i in [
+                                        self.alfa_template['spec']['labels']['name'],
+                                        self.alfa_template['spec']['labels']['component'],
+                                        self.alfa_template['spec']['labels']['instance'],
+                                        self.alfa_template['spec']['labels']['part-of']
+                                    ]
+                                },
                                 **o
                             ),
                             Loader=yaml.FullLoader
@@ -353,7 +445,7 @@ class AlfaTemplateConsumer:
             return
 
         for render in renders:
-            if render is None or "kind" not in render or self.config.debug_path:
+            if render is None or "kind" not in render:
                 continue
             try:
                 url = URL(self.config[render["kind"]]["url"]).parent / URL(self.config[render["kind"]]["url"]).name / render["metadata"]["name"]
@@ -448,9 +540,10 @@ def merge(a, b, path=None, override=True):
                 merge(a[key], b[key], path=path + [str(key)], override=override)
             elif a[key] == b[key]:
                 pass  # same leaf value
+            elif override:
+                a[key] = b[key]
             else:
-                if not override:
-                    raise Exception('Conflict at %s' % '.'.join(path + [str(key)]))
+                raise Exception('Conflict at %s' % '.'.join(path + [str(key)]))
         else:
             a[key] = b[key]
     return a
