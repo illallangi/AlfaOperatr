@@ -1,4 +1,5 @@
 import base64
+import json
 import os
 from hashlib import sha256
 
@@ -107,8 +108,8 @@ def json_query(input, f):
 
 def json_query_one(input, f):
     result = jmespath.search(f, input, options=jmespath.Options(custom_functions=CustomFunctions()))
-    if len(result) != 1:
-        raise Exception(f'too many items in iterable (expected 1, received {len(result)} from {f})')
+    if (0 if result is None else len(result)) != 1:
+        raise Exception(f'Incorrect number of items in iterable (expected 1, received {0 if result is None else len(result)} from {f} in {json.dumps(input)})')
     return one(result)
 
 
