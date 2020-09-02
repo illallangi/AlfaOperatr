@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+from functools import reduce
 from hashlib import sha256
 
 import jinja2
@@ -15,11 +16,13 @@ from netaddr import IPAddress
 
 import yaml
 
-from .log import AlfaLog
+from .functions import merge
+from .log import Log
 
 
 class AlfaJinja:
-    def __init__(self, config, logger=None):
+    def __init__(self, name, config, logger=None):
+        self.name = name
         self.config = config
         self.environment = jinja2.Environment(
             loader=jinja2.BaseLoader,
@@ -31,7 +34,7 @@ class AlfaJinja:
             ])
         self.environment.tests["is_subset"] = is_subset
         self.environment.tests["is_superset"] = is_superset
-        self.logger = AlfaLog.get_logger('AlfaJinja()', self.config.log_level) if logger is None else logger
+        self.logger = Log.get_logger(f'AlfaJinja({name})', self.config.log_level) if logger is None else logger
 
     def render(self, template, **kwargs):
         try:
@@ -68,6 +71,51 @@ class AlfaJinjaFiltersExtension(Extension):
         environment.filters["path_join"] = path_join
         environment.filters["merge"] = merge
         environment.filters["alfa_query"] = alfa_query
+        environment.filters["one_by_labels"] = one_by_labels
+        environment.filters["many_by_labels"] = many_by_labels
+
+
+def by_labels(input, namespace, *labels, min=None):
+    if not isinstance(namespace, str):
+        raise TypeError('namespace must be specified and string')
+    f = reduce(merge, labels)
+    kind = input[0]['kind']
+    input = [
+        i
+        for i in input
+        if i.get('metadata', {}).get('namespace', '') == namespace
+    ]
+    result = None
+    for k in f:
+        result = [
+            i
+            for i in result or input
+            if i.get('metadata', {}).get('labels', {}).get(k, None) == f[k]
+        ]
+        if min and len(result) < min:
+            raise LabelsFilteredInputBelowMinimumException(kind, input, k, f[k], min)
+    return result
+
+
+def many_by_labels(input, namespace, *labels):
+    return by_labels(input, namespace, *labels)
+
+
+def one_by_labels(input, namespace, *labels):
+    return one(by_labels(input, namespace, *labels, min=1))
+
+
+class LabelsFilteredInputBelowMinimumException(Exception):
+    def __init__(self, kind, input, key, value, min):
+        self.kind = kind
+        self.input = input
+        self.key = key
+        self.value = value
+        self.min = min
+        super().__init__(f'{self.key}=={self.value} filtered below {self.min} {self.kind}(s)')
+
+    def __repr__(self):
+        return f'{super().__repr__()}:\ninput:\n{json.dumps([{"namespace": x["metadata"]["namespace"], "name": x["metadata"]["name"], "labels": x["metadata"]["labels"]} for x in self.input], indent=True)}'
 
 
 # https://stackoverflow.com/posts/18335110/timeline
@@ -133,23 +181,6 @@ def cheap_hash(string, length=6):
 
 def path_join(input):
     return os.path.join(input[0], *input[1:]).strip('/')
-
-
-def merge(a, b, path=None):
-    "merges b into a"
-    if path is None:
-        path = []
-    for key in b:
-        if key in a:
-            if isinstance(a[key], dict) and isinstance(b[key], dict):
-                merge(a[key], b[key], path + [str(key)])
-            elif a[key] == b[key]:
-                pass  # same leaf value
-            else:
-                raise Exception('Conflict at %s' % '.'.join(path + [str(key)]))
-        else:
-            a[key] = b[key]
-    return a
 
 
 def alfa_query(

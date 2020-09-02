@@ -58,11 +58,12 @@ class ColoredLogger(logging.Logger):
 
 
 logging.getLogger('apscheduler').setLevel(logging.ERROR)
+logging.getLogger('urllib3.connectionpool').setLevel(logging.ERROR)
 loggers = {}
 logging.setLoggerClass(ColoredLogger)
 
 
-class AlfaLog:
+class Log:
     @staticmethod
     def get_logger(logger_name, log_level):
         if logger_name not in loggers.keys():

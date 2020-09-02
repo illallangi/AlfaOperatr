@@ -6,17 +6,17 @@ from aiohttp import ClientSession
 
 from yarl import URL
 
-from .log import AlfaLog
+from .log import Log
 
 
-class AlfaProducer:
+class Producer:
     def __init__(self, kind, config, session=None, resource_version=None, queue=None, logger=None):
         self.kind = kind
         self.config = config
         self.resource_version = resource_version
         self.session = ClientSession() if session is None else session
         self.queue = Queue() if queue is None else queue
-        self.logger = AlfaLog.get_logger(f'AlfaProducer({self.kind})', self.config.log_level) if logger is None else logger
+        self.logger = Log.get_logger(f'Producer({self.kind})', self.config.log_level) if logger is None else logger
 
     async def loop(self):
         while True:

@@ -1,0 +1,14 @@
+---
+extends: default
+
+rules:
+  indentation:
+    spaces: 2
+    indent-sequences: false
+
+  quoted-strings:
+    quote-type: double
+    required: only-when-needed
+
+  line-length:
+    max: 160

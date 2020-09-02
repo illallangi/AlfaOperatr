@@ -21,12 +21,9 @@ spec:
           spec:
             properties:
               scope:
-                pattern: ^(Cluster|Namespace|Object|Child)$
+                pattern: ^(Cluster|Namespace|Domain|Object)$
                 type: string
                 default: Object
-              filter:
-                type: string
-                default: ''
               kinds:
                 type: object
                 properties:
@@ -59,37 +56,42 @@ spec:
                 - child
               template:
                 type: string
+              ownerReferences:
+                type: boolean
+                default: true
+              component:
+                type: string
               update:
                 default: true
                 type: boolean
               labels:
                 type: object
                 default:
-                  name: 'app.kubernetes.io/name'
-                  instance: 'app.kubernetes.io/instance'
-                  component: 'app.kubernetes.io/component'
-                  managed-by: 'app.kubernetes.io/managed-by'
-                  part-of: 'app.kubernetes.io/part-of'
-                  scope: 'controllers.illallangi.enterprises/alfatemplate-scope'
+                  name: app.kubernetes.io/name
+                  partOf: app.kubernetes.io/part-of
+                  instance: app.kubernetes.io/instance
+                  domainName: app.kubernetes.io/domain-name
+                  component: app.kubernetes.io/component
+                  managedBy: app.kubernetes.io/managed-by
                 properties:
                   name:
                     type: string
-                    default: 'app.kubernetes.io/name'
-                  part-of:
+                    default: app.kubernetes.io/name
+                  partOf:
                     type: string
-                    default: 'app.kubernetes.io/part-of'
+                    default: app.kubernetes.io/part-of
                   instance:
                     type: string
-                    default: 'app.kubernetes.io/instance'
+                    default: app.kubernetes.io/instance
+                  domainName:
+                    type: string
+                    default: app.kubernetes.io/domain-name
                   component:
                     type: string
-                    default: 'app.kubernetes.io/component'
-                  managed-by:
+                    default: app.kubernetes.io/component
+                  managedBy:
                     type: string
-                    default: 'app.kubernetes.io/managed-by'
-                  scope:
-                    type: string
-                    default: 'controllers.illallangi.enterprises/alfatemplate-scope'
+                    default: app.kubernetes.io/managed-by
             required:
             - kinds
             - template
@@ -123,9 +125,9 @@ roleRef:
   kind: ClusterRole
   name: cluster-admin
 subjects:
-  - kind: ServiceAccount
-    name: alfaoperatr
-    namespace: alfa-system
+- kind: ServiceAccount
+  name: alfaoperatr
+  namespace: alfa-system
 
 ---
 apiVersion: apps/v1
@@ -146,9 +148,10 @@ spec:
         app.kubernetes.io/name: alfaoperatr
     spec:
       containers:
-        - name: operator
-          image: docker.io/illallangi/alfaoperatr:latest
-        - name: proxy
-          image: docker.io/bitnami/kubectl:1.18.0
-          args: ["proxy"]
+      - name: operator
+        image: docker.io/illallangi/alfaoperatr:latest
+      - name: proxy
+        image: docker.io/bitnami/kubectl:1.18.0
+        args:
+        - proxy
       serviceAccountName: alfaoperatr

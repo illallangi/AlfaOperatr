@@ -7,15 +7,16 @@ from requests import request
 
 from yarl import URL
 
-from .log import AlfaLog
+from .log import Log
 
 
-class AlfaConfig(Mapping):
+class Config(Mapping):
     def __init__(self,
                  api_proxy='http://localhost:8001',
                  app_filter='.*',
                  cooldown=5,
                  debug_path=None,
+                 dry_run=False,
                  log_level='INFO',
                  logger=None,
                  template_filter='.*',
@@ -24,8 +25,9 @@ class AlfaConfig(Mapping):
         self.app_filter = app_filter if isinstance(app_filter, Pattern) else compile(app_filter)
         self.cooldown = cooldown
         self.debug_path = debug_path
+        self.dry_run = dry_run
         self.log_level = log_level
-        self.logger = AlfaLog.get_logger('Config()', log_level) if logger is None else logger
+        self.logger = Log.get_logger('Config()', log_level) if logger is None else logger
         self.template_filter = template_filter if isinstance(template_filter, Pattern) else compile(template_filter)
         self.template_path = template_path
 
@@ -37,6 +39,7 @@ class AlfaConfig(Mapping):
         self.logger.info(f'    app_filter: {self.app_filter}')
         self.logger.info(f'    cooldown: {self.cooldown}')
         self.logger.info(f'    debug_path: {self.debug_path}')
+        self.logger.info(f'    dry_run: {self.dry_run}')
         self.logger.info(f'    log_level: {self.log_level}')
         self.logger.info(f'    template_filter: {self.template_filter}')
         self.logger.info(f'    template_path: {self.template_path}')

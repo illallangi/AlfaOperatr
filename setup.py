@@ -32,6 +32,7 @@ setuptools.setup(
         "netaddr",
         "pyyaml",
         "requests",
-        "six"
+        "six",
+        "slacker-log-handler"
     ]
 )
