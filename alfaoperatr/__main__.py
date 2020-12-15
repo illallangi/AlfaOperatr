@@ -7,6 +7,7 @@ from .config import Config
 
 
 @click.command(context_settings={"auto_envvar_prefix": "ALFA"})
+@click.argument('parent', required=True)
 @click.option('--api-proxy', default='http://localhost:8001', show_default=False, type=click.STRING)
 @click.option('--app-filter', default='.*', show_default=False, type=click.STRING)
 @click.option('--cooldown', default=5, show_default=False, type=click.INT)
@@ -16,6 +17,7 @@ from .config import Config
 @click.option('--template-filter', default='.*', show_default=False, type=click.STRING)
 @click.option('--template-path', default=None, show_default=False, type=click.Path(exists=False, file_okay=False, dir_okay=True, writable=False, readable=True, resolve_path=True, allow_dash=False))
 def main(
+        parent,
         api_proxy,
         app_filter,
         cooldown,
@@ -26,6 +28,7 @@ def main(
         template_path):
 
     config = Config(
+        parent=parent,
         api_proxy=api_proxy,
         app_filter=app_filter,
         cooldown=cooldown,

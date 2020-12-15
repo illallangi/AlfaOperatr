@@ -12,6 +12,7 @@ from .log import Log
 
 class Config(Mapping):
     def __init__(self,
+                 parent,
                  api_proxy='http://localhost:8001',
                  app_filter='.*',
                  cooldown=5,
@@ -21,6 +22,7 @@ class Config(Mapping):
                  logger=None,
                  template_filter='.*',
                  template_path=None):
+        self.parent = parent
         self.api_proxy = api_proxy if isinstance(api_proxy, URL) else URL(api_proxy)
         self.app_filter = app_filter if isinstance(app_filter, Pattern) else compile(app_filter)
         self.cooldown = cooldown
@@ -35,6 +37,7 @@ class Config(Mapping):
             makedirs(self.debug_path, exist_ok=True)
 
         self.logger.info('Config loaded:')
+        self.logger.info(f'    parent: {self.parent}')
         self.logger.info(f'    api_proxy: {self.api_proxy}')
         self.logger.info(f'    app_filter: {self.app_filter}')
         self.logger.info(f'    cooldown: {self.cooldown}')

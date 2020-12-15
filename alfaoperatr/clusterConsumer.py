@@ -28,6 +28,10 @@ class ClusterConsumer:
             self.logger.info(f'Ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]}) - Filtered by app filter {self.config.app_filter}')
             return
 
+        if not self.config.parent == event["object"]["spec"]["kinds"]["parent"]["kind"]:
+            self.logger.info(f'Ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]}) - Not a template for {self.config.parent}')
+            return
+
         if not self.config.template_filter.match(event["object"]["metadata"]["name"]):
             self.logger.info(f'Ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]}) - Filtered by template filter {self.config.template_filter}')
             return
