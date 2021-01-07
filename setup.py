@@ -20,7 +20,7 @@ setuptools.setup(
     ],
     python_requires=">=3.6",
     entry_points={
-        "console_scripts": ["alfaoperatr=illallangi.alfa:__main__.cli"],
+        "console_scripts": ["alfaoperatr=illallangi.alfaoperatr:__main__.cli"],
     },
     install_requires=[
         "Click",
