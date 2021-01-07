@@ -62,12 +62,16 @@ class Consumer:
                         render["metadata"]["name"],
                     )
                 )
-                logger.info(f'Getting {render["kind"]} {url}')
+                logger.info(
+                    f'Getting {render["kind"]} {render["metadata"].get("namespace","cluster")}\\{render["metadata"]["name"]}'
+                )
                 async with self.session.request("get", url) as item_get_response:
                     if item_get_response.status in [404]:
                         url = url.parent
                         try:
-                            logger.info(f'Creating {render["kind"]} {url}')
+                            logger.info(
+                                f'Creating {render["kind"]} {render["metadata"].get("namespace","cluster")}\\{render["metadata"]["name"]}'
+                            )
                             logger.debug(f"HTTP POST {url}: {json.dumps(render)}")
                             async with self.session.request(
                                 "post", url, json=render
@@ -105,8 +109,8 @@ class Consumer:
                                         "w",
                                     ) as outfile:
                                         yaml.dump(item_post, outfile)
-                                logger.info(
-                                    f'Created {render["kind"]} {url / render["metadata"]["name"]}, resourceVersion {item_post["metadata"]["resourceVersion"]}'
+                                logger.success(
+                                    f'Created {render["kind"]} {render["metadata"].get("namespace","cluster")}\\{render["metadata"]["name"]}, resourceVersion {item_post["metadata"]["resourceVersion"]}'
                                 )
                         except Exception as e:
                             logger.error(f'Error Creating {render["kind"]}: {repr(e)}')
@@ -171,7 +175,9 @@ class Consumer:
                             ]
 
                         try:
-                            logger.info(f'Updating {render["kind"]} {url}')
+                            logger.info(
+                                f'Updating {render["kind"]} {render["metadata"].get("namespace","cluster")}\\{render["metadata"]["name"]}'
+                            )
                             logger.debug(f"HTTP PUT {url}: {json.dumps(render)}")
                             async with self.session.request(
                                 "put", url, json=render
@@ -212,11 +218,11 @@ class Consumer:
                                             "w",
                                         ) as outfile:
                                             yaml.dump(item_put, outfile)
-                                    logger.info(
+                                    logger.success(
                                         f'Updated {render["kind"]} {render["metadata"].get("namespace","cluster")}\\{render["metadata"]["name"]}, from resourceVersion {item_get["metadata"]["resourceVersion"]} to {item_put["metadata"]["resourceVersion"]}'
                                     )
                                 else:
-                                    logger.info(
+                                    logger.success(
                                         f'No change to {render["kind"]} {render["metadata"].get("namespace","cluster")}\\{render["metadata"]["name"]}, resourceVersion still {item_get["metadata"]["resourceVersion"]}'
                                     )
                         except Exception as e:

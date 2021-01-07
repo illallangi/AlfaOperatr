@@ -32,10 +32,10 @@ class Controller:
             raise TypeError("Expected Queue; got %s" % type(self.queue).__name__)
 
     async def loop(self):
-        logger.info("loop starting")
+        logger.debug("loop starting")
         self.task = gather(*self.get_coroutines())
         await self.task
-        logger.info("loop completed")
+        logger.debug("loop completed")
 
     def get_coroutines(self):
         yield Consumer(
@@ -62,11 +62,11 @@ class Controller:
             ).loop()
 
     def __del__(self):
-        logger.info("__del__ starting")
+        logger.debug("__del__ starting")
         if (
             not get_event_loop().is_closed()
             and hasattr(self, "task")
             and self.task is not None
         ):
             self.task.cancel()
-        logger.info("__del__ completed")
+        logger.debug("__del__ completed")

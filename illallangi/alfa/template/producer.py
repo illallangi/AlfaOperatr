@@ -37,6 +37,7 @@ class Producer:
             raise TypeError("Expected Queue; got %s" % type(self.queue).__name__)
 
     async def loop(self):
+        logger.debug("loop starting")
         while True:
             try:
                 params = {"watch": 1}
@@ -45,7 +46,7 @@ class Producer:
                 async with self.session.request(
                     "get", self.api.kinds[self.kind].rest_path.with_query(**params)
                 ) as response:
-                    logger.info(f"Connected, {URL(response.url).query_string}")
+                    logger.debug(f"Connected, {URL(response.url).query_string}")
                     async for line in response.content:
                         if line:
                             try:
@@ -65,9 +66,10 @@ class Producer:
                                 )
                         await sleep(0)
             except TimeoutError:
-                logger.info(
+                logger.debug(
                     f"Timed out, restarting at resourceVersion {self.resource_version}"
                 )
+        logger.debug("loop completed")
 
     async def handle_event(self, event):
         if "name" not in event["object"]["metadata"].keys():
@@ -84,9 +86,9 @@ class Producer:
                 f'Ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]})'
             )
             return
-        logger.info(
+        logger.debug(
             f'Handling {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]})'
         )
-        logger.debug(f"Received event {json.dumps(event)}")
+        logger.trace(f"Received event {json.dumps(event)}")
 
         await self.queue.put({"event": event})

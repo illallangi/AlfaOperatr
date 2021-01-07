@@ -32,33 +32,30 @@ class Consumer:
 
     async def loop(self):
         while True:
-            logger.info(
-                f'{len(self.controllers)} TemplateController(s) in memory ({", ".join(self.controllers.keys())})'
-            )
             logger.debug("Sleeping until next event")
             queued = await self.queue.get()
             await self.consume(queued["event"])
 
     async def consume(self, event):
-        logger.debug(f"Received event {dumps(event)}")
+        logger.trace(f"Received event {dumps(event)}")
         if not self.parent == event["object"]["spec"]["kinds"]["parent"]["kind"]:
-            logger.info(
+            logger.debug(
                 f'Ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]}) - Not a template for {self.parent}'
             )
             return
 
-        logger.info(
+        logger.debug(
             f'Processing {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]})'
         )
 
         if event["object"]["metadata"]["name"] in self.controllers.keys():
-            logger.info(
+            logger.debug(
                 f'stopping existing TemplateController({event["object"]["metadata"]["name"]})'
             )
             self.controllers.pop(event["object"]["metadata"]["name"])
 
         if event["type"].lower() == "added" or event["type"].lower() == "modified":
-            logger.info(
+            logger.debug(
                 f'creating new TemplateController({event["object"]["metadata"]["name"]})'
             )
             controller = TemplateController(
@@ -69,3 +66,7 @@ class Consumer:
             )
             get_event_loop().create_task(controller.loop())
             self.controllers[event["object"]["metadata"]["name"]] = controller
+
+        logger.info(
+            f'{len(self.controllers)} TemplateController(s) in memory ({", ".join(self.controllers.keys())})'
+        )
