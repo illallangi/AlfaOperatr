@@ -71,7 +71,7 @@ class Producer:
 
     async def handle_event(self, event):
         if "name" not in event["object"]["metadata"].keys():
-            logger.warn(
+            logger.warning(
                 f"Ignoring event with no object.metadata.name: {json.dumps(event)}"
             )
             return
