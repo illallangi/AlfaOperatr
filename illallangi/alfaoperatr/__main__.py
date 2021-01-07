@@ -54,7 +54,7 @@ from .config import Config
         allow_dash=False,
     ),
 )
-def main(
+def cli(
     parent,
     api_proxy,
     app_filter,
@@ -84,4 +84,4 @@ def main(
 
 
 if __name__ == "__main__":
-    main()
+    cli()
