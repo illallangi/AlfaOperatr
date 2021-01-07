@@ -7,8 +7,11 @@ ENV PYTHONUNBUFFERED=1 \
     XDG_CONFIG_HOME=/config
 
 WORKDIR /usr/src/app
-ADD . /usr/src/app
 
+COPY ./requirements.txt /usr/src/app/requirements.txt
+RUN pip3 install -r requirements.txt
+
+ADD . /usr/src/app
 RUN pip3 install .
 
 ENTRYPOINT ["/usr/local/bin/alfaoperatr"]
