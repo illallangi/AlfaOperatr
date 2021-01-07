@@ -4,17 +4,33 @@ from asyncio.exceptions import TimeoutError
 
 from aiohttp import ClientSession
 
+from illallangi.k8sapi import API as K8S_API
+
 from yarl import URL
 
+from .config import Config
 from .log import Log
 
 
 class Producer:
     def __init__(
-        self, kind, config, session=None, resource_version=None, queue=None, logger=None
+        self,
+        kind,
+        config,
+        api,
+        session=None,
+        resource_version=None,
+        queue=None,
+        logger=None,
     ):
+        if not isinstance(config, Config):
+            raise TypeError("Expected Config; got %s" % type(config).__name__)
+        if not isinstance(api, K8S_API):
+            raise TypeError("Expected API; got %s" % type(api).__name__)
+
         self.kind = kind
         self.config = config
+        self.api = api
         self.resource_version = resource_version
         self.session = ClientSession() if session is None else session
         self.queue = Queue() if queue is None else queue
@@ -31,7 +47,7 @@ class Producer:
                 if self.resource_version is not None:
                     params["resourceVersion"] = self.resource_version
                 async with self.session.request(
-                    "get", self.config[self.kind]["url"].with_query(**params)
+                    "get", self.api.kinds[self.kind].rest_path.with_query(**params)
                 ) as response:
                     self.logger.info(f"Connected, {URL(response.url).query_string}")
                     async for line in response.content:

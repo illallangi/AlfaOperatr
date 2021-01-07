@@ -4,19 +4,30 @@ from asyncio import Queue, sleep
 
 from aiohttp import ClientSession
 
+from illallangi.k8sapi import API as K8S_API
+
 import yaml
 
 from yarl import URL
 
+from .config import Config
 from .functions import recursive_get
 from .log import Log
 from .templateRenderer import TemplateRenderer
 
 
 class TemplateConsumer:
-    def __init__(self, alfa_template, config, session=None, queue=None, logger=None):
+    def __init__(
+        self, alfa_template, config, api, session=None, queue=None, logger=None
+    ):
+        if not isinstance(config, Config):
+            raise TypeError("Expected Config; got %s" % type(config).__name__)
+        if not isinstance(api, K8S_API):
+            raise TypeError("Expected API; got %s" % type(api).__name__)
+
         self.alfa_template = alfa_template
         self.config = config
+        self.api = api
         self.session = ClientSession() if session is None else session
         self.queue = Queue() if queue is None else queue
         self.logger = (
@@ -44,24 +55,18 @@ class TemplateConsumer:
         for render in await TemplateRenderer(
             recursive_get(self.alfa_template, "metadata.name"),
             self.config,
+            self.api,
             self.session,
         ).render():
             if render is None or "kind" not in render or self.config.dry_run:
                 continue
             try:
-                url = (
-                    URL(self.config[render["kind"]]["url"]).parent
-                    / URL(self.config[render["kind"]]["url"]).name
-                    / render["metadata"]["name"]
-                )
-                if "namespace" in render["metadata"]:
-                    url = (
-                        URL(self.config[render["kind"]]["url"]).parent
-                        / URL("namespaces").name
-                        / URL(render["metadata"]["namespace"]).name
-                        / URL(self.config[render["kind"]]["url"]).name
-                        / render["metadata"]["name"]
+                url = URL(
+                    self.api.kinds[render["kind"]].calculate_url(
+                        render["metadata"].get("namespace", None),
+                        render["metadata"]["name"],
                     )
+                )
                 self.logger.info(f'Getting {render["kind"]} {url}')
                 async with self.session.request("get", url) as item_get_response:
                     if item_get_response.status in [404]:

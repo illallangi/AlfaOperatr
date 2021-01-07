@@ -1,3 +1,11 @@
+Click
 aiohttp
-more_itertools
+jinja2
 jinja2_ansible_filters
+jmespath
+more_itertools
+netaddr
+pyyaml
+requests
+six
+illallangi.k8sapi @ git+https://github.com/illallangi/K8SAPI@master

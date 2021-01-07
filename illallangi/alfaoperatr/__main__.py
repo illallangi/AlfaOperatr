@@ -2,6 +2,8 @@ from asyncio import ensure_future, get_event_loop
 
 import click
 
+from illallangi.k8sapi import API as K8S_API
+
 from .clusterController import ClusterController
 from .config import Config
 
@@ -68,7 +70,6 @@ def cli(
 
     config = Config(
         parent=parent,
-        api_proxy=api_proxy,
         app_filter=app_filter,
         cooldown=cooldown,
         debug_path=debug_path,
@@ -78,7 +79,9 @@ def cli(
         template_path=template_path,
     )
 
-    controller = ClusterController(config)
+    api = K8S_API(api_proxy)
+
+    controller = ClusterController(config, api)
 
     get_event_loop().run_until_complete(ensure_future(controller.loop()))
 

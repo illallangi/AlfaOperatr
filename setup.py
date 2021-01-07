@@ -33,5 +33,6 @@ setuptools.setup(
         "pyyaml",
         "requests",
         "six",
+        "illallangi.k8sapi @ git+https://github.com/illallangi/K8SAPI@master",
     ],
 )

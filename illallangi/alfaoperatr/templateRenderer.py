@@ -3,21 +3,30 @@ from functools import reduce
 
 from aiohttp import ClientSession
 
+from illallangi.k8sapi import API as K8S_API
+
 from more_itertools import first
 
 import yaml
 
 from yarl import URL
 
+from .config import Config
 from .functions import cheap_hash, common, merge, recursive_get
 from .jinja import AlfaJinja
 from .log import Log
 
 
 class TemplateRenderer:
-    def __init__(self, name, config, session=None, jinja=None, logger=None):
+    def __init__(self, name, config, api, session=None, jinja=None, logger=None):
+        if not isinstance(config, Config):
+            raise TypeError("Expected Config; got %s" % type(config).__name__)
+        if not isinstance(api, K8S_API):
+            raise TypeError("Expected API; got %s" % type(api).__name__)
+
         self.name = name
         self.config = config
+        self.api = api
         self.jinja = AlfaJinja(name, config) if jinja is None else jinja
         self.session = ClientSession() if session is None else session
         self.logger = (
@@ -56,13 +65,8 @@ class TemplateRenderer:
             self.logger.info("Getting Objects")
             self._objects = [
                 {
-                    "kind": (await self.child)["kind"],
-                    "apiVersion": "/".join(
-                        [
-                            (await self.child).get("group", ""),
-                            (await self.child).get("version", ""),
-                        ]
-                    ),
+                    "kind": (await self.child).kind,
+                    "apiVersion": (await self.child).api_group.group_version,
                     "metadata": {
                         "labels": {
                             (await self.labels_name): recursive_get(
@@ -476,7 +480,7 @@ class TemplateRenderer:
 
     @property
     async def child(self):
-        return self.config[await self.child_kind]
+        return self.api.kinds[await self.child_kind]
 
     @property
     async def child_kind(self):
@@ -488,7 +492,7 @@ class TemplateRenderer:
 
     @property
     async def parent(self):
-        return self.config[await self.parent_kind]
+        return self.api.kinds[await self.parent_kind]
 
     @property
     async def parent_kind(self):
@@ -525,14 +529,17 @@ class TemplateRenderer:
     async def get_items(self, kind):
         items = []
         async with self.session.request(
-            "get", self.config[kind]["url"]
+            "get", self.api.kinds[kind].rest_path
         ) as item_collection_response:
             item_collection = await item_collection_response.json()
             for item in item_collection["items"]:
                 async with self.session.request(
                     "get",
-                    URL(item_collection_response.url).with_path(
-                        item["metadata"]["selfLink"]
+                    URL(
+                        self.api.kinds[kind].calculate_url(
+                            item["metadata"].get("namespace", None),
+                            item["metadata"]["name"],
+                        )
                     ),
                 ) as item_response:
                     item = await item_response.json()

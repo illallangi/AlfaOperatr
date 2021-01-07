@@ -3,13 +3,22 @@ from json import dumps
 
 from aiohttp import ClientSession
 
+from illallangi.k8sapi import API as K8S_API
+
+from .config import Config
 from .log import Log
 from .templateController import TemplateController
 
 
 class ClusterConsumer:
-    def __init__(self, config, session=None, queue=None, logger=None):
+    def __init__(self, config, api, session=None, queue=None, logger=None):
+        if not isinstance(config, Config):
+            raise TypeError("Expected Config; got %s" % type(config).__name__)
+        if not isinstance(api, K8S_API):
+            raise TypeError("Expected API; got %s" % type(api).__name__)
+
         self.config = config
+        self.api = api
         self.session = ClientSession() if session is None else session
         self.queue = Queue() if queue is None else queue
         self.logger = (
@@ -67,7 +76,7 @@ class ClusterConsumer:
                 f'creating new TemplateController({event["object"]["metadata"]["name"]})'
             )
             controller = TemplateController(
-                event["object"], session=self.session, config=self.config
+                event["object"], session=self.session, config=self.config, api=self.api
             )
             get_event_loop().create_task(controller.loop())
             self.controllers[event["object"]["metadata"]["name"]] = controller

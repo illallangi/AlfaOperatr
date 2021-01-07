@@ -2,14 +2,23 @@ from asyncio import Queue, gather
 
 from aiohttp import ClientSession
 
+from illallangi.k8sapi import API as K8S_API
+
 from .clusterConsumer import ClusterConsumer
+from .config import Config
 from .log import Log
 from .producer import Producer
 
 
 class ClusterController:
-    def __init__(self, config, queue=None, session=None, logger=None):
+    def __init__(self, config, api, queue=None, session=None, logger=None):
+        if not isinstance(config, Config):
+            raise TypeError("Expected Config; got %s" % type(config).__name__)
+        if not isinstance(api, K8S_API):
+            raise TypeError("Expected API; got %s" % type(api).__name__)
+
         self.config = config
+        self.api = api
         self.session = ClientSession() if session is None else session
         self.queue = Queue() if queue is None else queue
         self.logger = (
@@ -26,7 +35,7 @@ class ClusterController:
 
     def get_coroutines(self):
         yield ClusterConsumer(
-            session=self.session, queue=self.queue, config=self.config
+            session=self.session, queue=self.queue, config=self.config, api=self.api
         ).loop()
 
         for kind in ["AlfaTemplate"]:
@@ -36,6 +45,7 @@ class ClusterController:
                 session=self.session,
                 queue=self.queue,
                 config=self.config,
+                api=self.api,
             ).loop()
 
     def __del__(self):
