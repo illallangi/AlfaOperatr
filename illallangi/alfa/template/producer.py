@@ -10,13 +10,14 @@ from loguru import logger
 
 from yarl import URL
 
+TIMEOUT = None
+
 
 class Producer:
     def __init__(
         self,
         api,
         kind,
-        resource_version=None,
         session=None,
         queue=None,
     ):
@@ -26,7 +27,6 @@ class Producer:
             else api
         )
         self.kind = kind
-        self.resource_version = resource_version or 0
         self.session = ClientSession() if session is None else session
         if not isinstance(self.session, ClientSession):
             raise TypeError(
@@ -37,45 +37,61 @@ class Producer:
             raise TypeError("Expected Queue; got %s" % type(self.queue).__name__)
 
     async def loop(self):
-        logger.debug("loop starting")
-        while True:
-            try:
-                params = {"watch": 1}
-                if self.resource_version > 0:
-                    params["resourceVersion"] = self.resource_version
-                async with self.session.request(
-                    "get", self.api.kinds[self.kind].rest_path.with_query(**params)
-                ) as response:
-                    logger.debug(f"Connected, {URL(response.url).query_string}")
-                    async for line in response.content:
-                        if line:
-                            try:
-                                event = json.loads(line)
-                            except json.decoder.JSONDecodeError as e:
-                                logger.error(
-                                    f'Encountered JSONDecodeError "{repr(e)}" on "{line}", continuing.'
-                                )
-                                continue
-                            await self.handle_event(event)
-                            if (
-                                int(event["object"]["metadata"]["resourceVersion"])
-                                > self.resource_version
-                            ):
-                                self.resource_version = int(
-                                    event["object"]["metadata"]["resourceVersion"]
-                                )
+        with logger.contextualize(
+            kind=self.kind,
+        ):
+            logger.debug("starting loop")
+            resource_version = 0
+            while True:
+                try:
+                    params = {"watch": 1}
+                    if resource_version > 0:
+                        params["resourceVersion"] = resource_version
+                    async with self.session.request(
+                        "get",
+                        self.api.kinds[self.kind].rest_path.with_query(**params),
+                        timeout=TIMEOUT,
+                    ) as response:
+                        logger.info(f"connected to {response.url}")
+                        async for line in response.content:
+                            if line:
+                                try:
+                                    event = json.loads(line)
+                                except json.decoder.JSONDecodeError as e:
+                                    logger.error(
+                                        f'JSONDecodeError "{repr(e)}" on "{line}", continuing.'
+                                    )
+                                    continue
+                                if (
+                                    event["type"] == "ERROR"
+                                    and event["object"]["reason"] == "Expired"
+                                ):
+                                    resource_version = 0
+                                    logger.warning(
+                                        f"connection expired, restarting at resourceVersion {resource_version}"
+                                    )
+                                    break
+                                await self.handle_event(event)
+                                if (
+                                    int(event["object"]["metadata"]["resourceVersion"])
+                                    > resource_version
+                                ):
+                                    resource_version = int(
+                                        event["object"]["metadata"]["resourceVersion"]
+                                    )
+                            await sleep(0)
                         await sleep(0)
-            except TimeoutError:
-                logger.debug(
-                    f"Timed out, restarting at resourceVersion {self.resource_version}"
-                )
-        logger.debug("loop completed")
+                    await sleep(0)
+                except TimeoutError:
+                    logger.warning(
+                        f"timed out, restarting at resourceVersion {resource_version}"
+                    )
+            logger.debug("completed loop")
 
     async def handle_event(self, event):
+        logger.trace(f"{json.dumps(event)}")
         if "name" not in event["object"]["metadata"].keys():
-            logger.warning(
-                f"Ignoring event with no object.metadata.name: {json.dumps(event)}"
-            )
+            logger.debug("ignoring event with no object.metadata.name")
             return
         if event["object"]["metadata"]["name"] in [
             "cert-manager-controller",
@@ -83,12 +99,11 @@ class Producer:
             "cert-manager-cainjector-leader-election",
         ]:
             logger.debug(
-                f'Ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]})'
+                f'ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]})'
             )
             return
         logger.debug(
-            f'Handling {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]})'
+            f'handling {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]})'
         )
-        logger.trace(f"Received event {json.dumps(event)}")
 
         await self.queue.put({"event": event})

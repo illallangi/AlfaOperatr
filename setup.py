@@ -33,6 +33,7 @@ setuptools.setup(
         "pyyaml",
         "requests",
         "six",
+        "slack_sdk",
         "illallangi.k8sapi @ git+https://github.com/illallangi/K8SAPI@master",
     ],
 )

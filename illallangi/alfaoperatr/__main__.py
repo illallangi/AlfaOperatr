@@ -7,7 +7,52 @@ from illallangi.alfa.cluster import Controller
 
 from loguru import logger
 
-from notifiers.logging import NotificationHandler
+from slack_sdk import WebClient
+
+
+class SlackHandler(object):
+    def __init__(self, token, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.token = token
+        self.client = WebClient(self.token)
+
+    def write(self, message):
+        result = self.client.chat_postMessage(
+            channel="#general",
+            text=f'Template {message.record["extra"]["template"]} processed {message.record["extra"]["render"]}, {message.record["message"]}',
+            blocks=[
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f'Template {message.record["extra"]["template"]} processed {message.record["extra"]["render"]}, {message.record["message"]}',
+                    },
+                }
+            ],
+        )
+
+        for file in message.record["extra"].get("files", []):
+            self.client.files_upload(
+                channels="#general",
+                content=file["yaml"],
+                filename=file["filename"],
+                filetype="javascript",
+                title=file["title"],
+                thread_ts=result["ts"],
+            )
+
+
+def log_format(record):
+    f = "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} |"
+    if "template" in record["extra"]:
+        f += " <e>{extra[template]}</e>"
+    if "kind" in record["extra"]:
+        f += " <c>{extra[kind]}</c>"
+    f += " <g>{module}</g> <level>{message}</level>"
+    if "render" in record["extra"]:
+        f += " <y>{extra[render]}</y>"
+    f += "\n"
+    return f
 
 
 @command()
@@ -20,9 +65,7 @@ from notifiers.logging import NotificationHandler
     default="INFO",
     envvar="LOG_LEVEL",
 )
-@option("--slack-username", type=STRING, envvar="SLACK_USERNAME", default=__name__)
-@option("--slack-webhook", type=STRING, envvar="SLACK_WEBHOOK", default=None)
-@option("--slack-format", type=STRING, envvar="SLACK_FORMAT", default="{message}")
+@option("--slack-token", type=STRING, envvar="SLACK_TOKEN", default=None)
 @option(
     "--parent",
     required=True,
@@ -52,19 +95,16 @@ from notifiers.logging import NotificationHandler
 )
 def cli(
     log_level,
-    slack_username,
-    slack_webhook,
-    slack_format,
+    slack_token,
     api,
     dump,
     parent,
 ):
     logger.remove()
-    logger.add(stderr, level=log_level)
-    if slack_webhook:
-        params = {"username": slack_username, "webhook_url": slack_webhook}
-        slack = NotificationHandler("slack", defaults=params)
-        logger.add(slack, format=slack_format, level="SUCCESS")
+    logger.add(stderr, format=log_format, level=log_level)
+    if slack_token:
+        slack = SlackHandler(token=slack_token)
+        logger.add(slack, level="SUCCESS")
 
     controller = Controller(api, dump, parent)
 

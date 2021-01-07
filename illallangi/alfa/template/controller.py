@@ -32,10 +32,13 @@ class Controller:
             raise TypeError("Expected Queue; got %s" % type(self.queue).__name__)
 
     async def loop(self):
-        logger.debug("loop starting")
-        self.task = gather(*self.get_coroutines())
-        await self.task
-        logger.debug("loop completed")
+        with logger.contextualize(
+            template=recursive_get(self.alfa_template, "metadata.name"),
+        ):
+            logger.debug("loop starting")
+            self.task = gather(*self.get_coroutines())
+            await self.task
+            logger.debug("loop completed")
 
     def get_coroutines(self):
         yield Consumer(
@@ -56,17 +59,19 @@ class Controller:
             yield Producer(
                 api=self.api,
                 kind=kind,
-                resource_version=None,
                 session=self.session,
                 queue=self.queue,
             ).loop()
 
-    def __del__(self):
-        logger.debug("__del__ starting")
+    def cancel(self):
         if (
             not get_event_loop().is_closed()
             and hasattr(self, "task")
             and self.task is not None
         ):
+            logger.info("cancelling task")
             self.task.cancel()
-        logger.debug("__del__ completed")
+
+    def __del__(self):
+        logger.info("__del__ starting")
+        logger.info("__del__ completed")

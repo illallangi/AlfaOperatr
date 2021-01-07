@@ -31,10 +31,11 @@ class Controller:
             raise TypeError("Expected Queue; got %s" % type(self.queue).__name__)
 
     async def loop(self):
-        logger.debug("loop starting")
-        self.task = gather(*self.get_coroutines())
-        await self.task
-        logger.debug("loop completed")
+        with logger.contextualize():
+            logger.debug("loop starting")
+            self.task = gather(*self.get_coroutines())
+            await self.task
+            logger.debug("loop completed")
 
     def get_coroutines(self):
         yield Consumer(
@@ -49,7 +50,6 @@ class Controller:
             yield Producer(
                 api=self.api,
                 kind=kind,
-                resource_version=None,
                 session=self.session,
                 queue=self.queue,
             ).loop()

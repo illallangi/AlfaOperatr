@@ -1,4 +1,4 @@
-from asyncio import Queue, get_event_loop
+from asyncio import Queue, get_event_loop, sleep
 from json import dumps
 
 from aiohttp import ClientSession
@@ -49,15 +49,12 @@ class Consumer:
         )
 
         if event["object"]["metadata"]["name"] in self.controllers.keys():
-            logger.debug(
-                f'stopping existing TemplateController({event["object"]["metadata"]["name"]})'
-            )
-            self.controllers.pop(event["object"]["metadata"]["name"])
+            logger.info(f'stopping {event["object"]["metadata"]["name"]} controller')
+            self.controllers.pop(event["object"]["metadata"]["name"]).cancel()
+            await sleep(0)
 
         if event["type"].lower() == "added" or event["type"].lower() == "modified":
-            logger.debug(
-                f'creating new TemplateController({event["object"]["metadata"]["name"]})'
-            )
+            logger.info(f'creating {event["object"]["metadata"]["name"]} controller')
             controller = TemplateController(
                 api=self.api,
                 dump=self.dump,
@@ -66,7 +63,3 @@ class Consumer:
             )
             get_event_loop().create_task(controller.loop())
             self.controllers[event["object"]["metadata"]["name"]] = controller
-
-        logger.info(
-            f'{len(self.controllers)} TemplateController(s) in memory ({", ".join(self.controllers.keys())})'
-        )
