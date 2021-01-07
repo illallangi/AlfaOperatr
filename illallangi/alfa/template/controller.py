@@ -2,7 +2,6 @@ from asyncio import Queue, gather, get_event_loop
 
 from aiohttp import ClientSession
 
-from illallangi.alfa import Producer
 from illallangi.alfa.functions import recursive_get
 from illallangi.k8sapi import API as K8S_API
 
@@ -11,6 +10,7 @@ from loguru import logger
 from yarl import URL
 
 from .consumer import Consumer
+from .producer import Producer
 
 
 class Controller:
@@ -63,6 +63,10 @@ class Controller:
 
     def __del__(self):
         logger.info("__del__ starting")
-        if not get_event_loop().is_closed() and self.task is not None:
+        if (
+            not get_event_loop().is_closed()
+            and hasattr(self, "task")
+            and self.task is not None
+        ):
             self.task.cancel()
         logger.info("__del__ completed")
