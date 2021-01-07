@@ -11,4 +11,16 @@ Creates Kubernetes resources by processing custom resources through a Jinja2 tem
 
 ## Usage
 
-TBC
+```shell
+$ alfaoperatr
+Usage: alfaoperatr [OPTIONS] PARENT
+
+Options:
+  --log-level [CRITICAL|ERROR|WARNING|INFO|DEBUG|SUCCESS|TRACE]
+  --slack-username TEXT
+  --slack-webhook TEXT
+  --slack-format TEXT
+  --debug-path DIRECTORY
+  --api-proxy TEXT
+  --help                          Show this message and exit.
+```
