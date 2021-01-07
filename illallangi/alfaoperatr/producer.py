@@ -6,10 +6,11 @@ from aiohttp import ClientSession
 
 from illallangi.k8sapi import API as K8S_API
 
+from loguru import logger
+
 from yarl import URL
 
 from .config import Config
-from .log import Log
 
 
 class Producer:
@@ -21,7 +22,6 @@ class Producer:
         session=None,
         resource_version=None,
         queue=None,
-        logger=None,
     ):
         if not isinstance(config, Config):
             raise TypeError("Expected Config; got %s" % type(config).__name__)
@@ -34,11 +34,6 @@ class Producer:
         self.resource_version = resource_version
         self.session = ClientSession() if session is None else session
         self.queue = Queue() if queue is None else queue
-        self.logger = (
-            Log.get_logger(f"Producer({self.kind})", self.config.log_level)
-            if logger is None
-            else logger
-        )
 
     async def loop(self):
         while True:
@@ -49,13 +44,13 @@ class Producer:
                 async with self.session.request(
                     "get", self.api.kinds[self.kind].rest_path.with_query(**params)
                 ) as response:
-                    self.logger.info(f"Connected, {URL(response.url).query_string}")
+                    logger.info(f"Connected, {URL(response.url).query_string}")
                     async for line in response.content:
                         if line:
                             try:
                                 event = json.loads(line)
                             except json.decoder.JSONDecodeError as e:
-                                self.logger.error(
+                                logger.error(
                                     f'Encountered JSONDecodeError "{repr(e)}" on "{line}", continuing.'
                                 )
                                 continue
@@ -68,13 +63,13 @@ class Producer:
                                 )
                         await sleep(0)
             except TimeoutError:
-                self.logger.info(
+                logger.info(
                     f"Timed out, restarting at resourceVersion {self.resource_version}"
                 )
 
     async def handle_event(self, event):
         if "name" not in event["object"]["metadata"].keys():
-            self.logger.warn(
+            logger.warn(
                 f"Ignoring event with no object.metadata.name: {json.dumps(event)}"
             )
             return
@@ -83,13 +78,13 @@ class Producer:
             "cert-manager-cainjector-leader-election-core",
             "cert-manager-cainjector-leader-election",
         ]:
-            self.logger.debug(
+            logger.debug(
                 f'Ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]})'
             )
             return
-        self.logger.info(
+        logger.info(
             f'Handling {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]})'
         )
-        self.logger.debug(f"Received event {json.dumps(event)}")
+        logger.debug(f"Received event {json.dumps(event)}")
 
         await self.queue.put({"event": event})

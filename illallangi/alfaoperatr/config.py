@@ -1,7 +1,7 @@
 from os import makedirs
 from re import Pattern, compile
 
-from .log import Log
+from loguru import logger
 
 
 class Config(object):
@@ -13,7 +13,6 @@ class Config(object):
         debug_path=None,
         dry_run=False,
         log_level="INFO",
-        logger=None,
         template_filter=".*",
         template_path=None,
     ):
@@ -25,9 +24,6 @@ class Config(object):
         self.debug_path = debug_path
         self.dry_run = dry_run
         self.log_level = log_level
-        self.logger = (
-            Log.get_logger("Config()", log_level) if logger is None else logger
-        )
         self.template_filter = (
             template_filter
             if isinstance(template_filter, Pattern)
@@ -38,12 +34,12 @@ class Config(object):
         if self.debug_path:
             makedirs(self.debug_path, exist_ok=True)
 
-        self.logger.info("Config loaded:")
-        self.logger.info(f"    parent: {self.parent}")
-        self.logger.info(f"    app_filter: {self.app_filter}")
-        self.logger.info(f"    cooldown: {self.cooldown}")
-        self.logger.info(f"    debug_path: {self.debug_path}")
-        self.logger.info(f"    dry_run: {self.dry_run}")
-        self.logger.info(f"    log_level: {self.log_level}")
-        self.logger.info(f"    template_filter: {self.template_filter}")
-        self.logger.info(f"    template_path: {self.template_path}")
+        logger.info("Config loaded:")
+        logger.info(f"    parent: {self.parent}")
+        logger.info(f"    app_filter: {self.app_filter}")
+        logger.info(f"    cooldown: {self.cooldown}")
+        logger.info(f"    debug_path: {self.debug_path}")
+        logger.info(f"    dry_run: {self.dry_run}")
+        logger.info(f"    log_level: {self.log_level}")
+        logger.info(f"    template_filter: {self.template_filter}")
+        logger.info(f"    template_path: {self.template_path}")

@@ -10,6 +10,8 @@ from jinja2.ext import Extension
 import jmespath
 from jmespath import functions
 
+from loguru import logger
+
 from more_itertools import one
 
 from netaddr import IPAddress
@@ -17,11 +19,10 @@ from netaddr import IPAddress
 import yaml
 
 from .functions import merge
-from .log import Log
 
 
 class AlfaJinja:
-    def __init__(self, name, config, logger=None):
+    def __init__(self, name, config):
         self.name = name
         self.config = config
         self.environment = jinja2.Environment(
@@ -35,33 +36,24 @@ class AlfaJinja:
         )
         self.environment.tests["is_subset"] = is_subset
         self.environment.tests["is_superset"] = is_superset
-        self.logger = (
-            Log.get_logger(f"AlfaJinja({name})", self.config.log_level)
-            if logger is None
-            else logger
-        )
 
     def render(self, template, **kwargs):
         try:
             jinja2_template = self.environment.from_string(source=template)
         except jinja2.TemplateSyntaxError as e:
-            self.logger.error(
-                f"Template Syntax Error Loading Template: {e}:{e.lineno})"
-            )
+            logger.error(f"Template Syntax Error Loading Template: {e}:{e.lineno})")
             return None
         except Exception as e:
-            self.logger.error(f"Unknown Exception Loading Template: {repr(e)}")
+            logger.error(f"Unknown Exception Loading Template: {repr(e)}")
             return None
 
         try:
             jinja2_result = jinja2_template.render(**kwargs)
         except jinja2.TemplateSyntaxError as e:
-            self.logger.error(
-                f"Template Syntax Error Rendering Template: {e}:{e.lineno})"
-            )
+            logger.error(f"Template Syntax Error Rendering Template: {e}:{e.lineno})")
             return None
         except Exception as e:
-            self.logger.error(f"Unknown Exception Rendering Template: {repr(e)}")
+            logger.error(f"Unknown Exception Rendering Template: {repr(e)}")
             return None
 
         return jinja2_result.strip()

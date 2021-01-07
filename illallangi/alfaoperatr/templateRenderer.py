@@ -5,6 +5,8 @@ from aiohttp import ClientSession
 
 from illallangi.k8sapi import API as K8S_API
 
+from loguru import logger
+
 from more_itertools import first
 
 import yaml
@@ -14,11 +16,10 @@ from yarl import URL
 from .config import Config
 from .functions import cheap_hash, common, merge, recursive_get
 from .jinja import AlfaJinja
-from .log import Log
 
 
 class TemplateRenderer:
-    def __init__(self, name, config, api, session=None, jinja=None, logger=None):
+    def __init__(self, name, config, api, session=None, jinja=None):
         if not isinstance(config, Config):
             raise TypeError("Expected Config; got %s" % type(config).__name__)
         if not isinstance(api, K8S_API):
@@ -29,22 +30,15 @@ class TemplateRenderer:
         self.api = api
         self.jinja = AlfaJinja(name, config) if jinja is None else jinja
         self.session = ClientSession() if session is None else session
-        self.logger = (
-            Log.get_logger(f"TemplateRenderer({name})", self.config.log_level)
-            if logger is None
-            else logger
-        )
 
     async def render(self):
-        self.logger.info(
-            f"Rendering AlfaTemplate {self.name} in {await self.scope} scope"
-        )
+        logger.info(f"Rendering AlfaTemplate {self.name} in {await self.scope} scope")
         return await self.renders
 
     @property
     async def items(self):
         if "_items" not in self.__dict__ or self._items is None:
-            self.logger.info(f'Getting {"s, ".join(await self.kinds)}s')
+            logger.info(f'Getting {"s, ".join(await self.kinds)}s')
             self._items = {k: await self.get_items(k) for k in await self.kinds}
             for k in self._items:
                 if self.config.debug_path:
@@ -56,13 +50,13 @@ class TemplateRenderer:
                         "w",
                     ) as outfile:
                         outfile.write(yaml.dump_all(self._items[k]))
-                self.logger.info(f" - Got {len(self._items[k])} {k}(s)")
+                logger.info(f" - Got {len(self._items[k])} {k}(s)")
         return self._items
 
     @property
     async def objects(self):
         if "_objects" not in self.__dict__ or self._objects is None:
-            self.logger.info("Getting Objects")
+            logger.info("Getting Objects")
             self._objects = [
                 {
                     "kind": (await self.child).kind,
@@ -162,13 +156,13 @@ class TemplateRenderer:
                     "w",
                 ) as outfile:
                     outfile.write(yaml.dump_all(self._objects))
-            self.logger.info(f" - Got {len(self._objects)} Objects")
+            logger.info(f" - Got {len(self._objects)} Objects")
         return self._objects
 
     @property
     async def domains(self):
         if "_domains" not in self.__dict__ or self._domains is None:
-            self.logger.info("Getting Domains")
+            logger.info("Getting Domains")
             self._domains = [
                 reduce(
                     merge,
@@ -233,13 +227,13 @@ class TemplateRenderer:
                     "w",
                 ) as outfile:
                     outfile.write(yaml.dump_all(self._domains))
-            self.logger.info(f" - Got {len(self._domains)} Domains")
+            logger.info(f" - Got {len(self._domains)} Domains")
         return self._domains
 
     @property
     async def namespaces(self):
         if "_namespaces" not in self.__dict__ or self._namespaces is None:
-            self.logger.info("Getting Namespaces")
+            logger.info("Getting Namespaces")
             self._namespaces = [
                 reduce(
                     merge,
@@ -309,13 +303,13 @@ class TemplateRenderer:
                     "w",
                 ) as outfile:
                     outfile.write(yaml.dump_all(self._namespaces))
-            self.logger.info(f" - Got {len(self._namespaces)} Namespaces")
+            logger.info(f" - Got {len(self._namespaces)} Namespaces")
         return self._namespaces
 
     @property
     async def clusters(self):
         if "_clusters" not in self.__dict__ or self._clusters is None:
-            self.logger.info("Getting Clusters")
+            logger.info("Getting Clusters")
             self._clusters = [
                 reduce(
                     merge,
@@ -339,13 +333,13 @@ class TemplateRenderer:
                     "w",
                 ) as outfile:
                     outfile.write(yaml.dump_all(self._clusters))
-            self.logger.info(f" - Got {len(self._clusters)} Clusters")
+            logger.info(f" - Got {len(self._clusters)} Clusters")
         return self._clusters
 
     @property
     async def renders(self):
         if "_renders" not in self.__dict__ or self._renders is None:
-            self.logger.info("Getting Renders")
+            logger.info("Getting Renders")
             self._renders = [
                 merge(
                     m,
@@ -443,7 +437,7 @@ class TemplateRenderer:
                     "w",
                 ) as outfile:
                     outfile.write(yaml.dump_all(self._renders))
-            self.logger.info(f" - Got {len(self._renders)} Renders")
+            logger.info(f" - Got {len(self._renders)} Renders")
         return self._renders
 
     @property
@@ -508,7 +502,7 @@ class TemplateRenderer:
     @property
     async def template(self):
         if "_template" not in self.__dict__ or self._template is None:
-            self.logger.info("Getting Template")
+            logger.info("Getting Template")
             self._template = [
                 t
                 for t in await self.get_items("AlfaTemplate")
@@ -523,7 +517,7 @@ class TemplateRenderer:
                     "w",
                 ) as outfile:
                     outfile.write(yaml.dump_all(self._template))
-            self.logger.info(f" - Got {len(self._template)} Template(s)")
+            logger.info(f" - Got {len(self._template)} Template(s)")
         return first(self._template)
 
     async def get_items(self, kind):

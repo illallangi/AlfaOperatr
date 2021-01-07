@@ -6,20 +6,19 @@ from aiohttp import ClientSession
 
 from illallangi.k8sapi import API as K8S_API
 
+from loguru import logger
+
 import yaml
 
 from yarl import URL
 
 from .config import Config
 from .functions import recursive_get
-from .log import Log
 from .templateRenderer import TemplateRenderer
 
 
 class TemplateConsumer:
-    def __init__(
-        self, alfa_template, config, api, session=None, queue=None, logger=None
-    ):
+    def __init__(self, alfa_template, config, api, session=None, queue=None):
         if not isinstance(config, Config):
             raise TypeError("Expected Config; got %s" % type(config).__name__)
         if not isinstance(api, K8S_API):
@@ -30,20 +29,12 @@ class TemplateConsumer:
         self.api = api
         self.session = ClientSession() if session is None else session
         self.queue = Queue() if queue is None else queue
-        self.logger = (
-            Log.get_logger(
-                f'TemplateConsumer({alfa_template["metadata"]["name"]})',
-                self.config.log_level,
-            )
-            if logger is None
-            else logger
-        )
 
     async def loop(self):
         while True:
-            self.logger.debug("Sleeping until next event")
+            logger.debug("Sleeping until next event")
             await self.queue.get()
-            self.logger.info(
+            logger.info(
                 f"Consumer awaiting cooldown for {self.config.cooldown} seconds"
             )
             await sleep(self.config.cooldown)
@@ -67,13 +58,13 @@ class TemplateConsumer:
                         render["metadata"]["name"],
                     )
                 )
-                self.logger.info(f'Getting {render["kind"]} {url}')
+                logger.info(f'Getting {render["kind"]} {url}')
                 async with self.session.request("get", url) as item_get_response:
                     if item_get_response.status in [404]:
                         url = url.parent
                         try:
-                            self.logger.info(f'Creating {render["kind"]} {url}')
-                            self.logger.debug(f"HTTP POST {url}: {json.dumps(render)}")
+                            logger.info(f'Creating {render["kind"]} {url}')
+                            logger.debug(f"HTTP POST {url}: {json.dumps(render)}")
                             async with self.session.request(
                                 "post", url, json=render
                             ) as item_post_response:
@@ -85,7 +76,7 @@ class TemplateConsumer:
                                     404
                                 ]:
                                     item_post = await item_post_response.text()
-                                    self.logger.error(
+                                    logger.error(
                                         f"HTTP POST {url} {item_post_response.status} {item_post}"
                                     )
                                     continue
@@ -94,11 +85,11 @@ class TemplateConsumer:
                                     item_post["kind"] == "Status"
                                     and item_post["status"] == "Failure"
                                 ):
-                                    self.logger.error(
+                                    logger.error(
                                         f'HTTP POST {url} failed: {item_post["message"]} {json.dumps(item_post)}'
                                     )
                                     continue
-                                self.logger.debug(
+                                logger.debug(
                                     f"HTTP POST {url} {item_post_response.status} {json.dumps(item_post)}"
                                 )
                                 if self.config.debug_path:
@@ -110,13 +101,11 @@ class TemplateConsumer:
                                         "w",
                                     ) as outfile:
                                         yaml.dump(item_post, outfile)
-                                self.logger.info(
+                                logger.info(
                                     f'Created {render["kind"]} {url / render["metadata"]["name"]}, resourceVersion {item_post["metadata"]["resourceVersion"]}'
                                 )
                         except Exception as e:
-                            self.logger.error(
-                                f'Error Creating {render["kind"]}: {repr(e)}'
-                            )
+                            logger.error(f'Error Creating {render["kind"]}: {repr(e)}')
                             continue
 
                     else:
@@ -135,13 +124,13 @@ class TemplateConsumer:
                         ]
 
                         if not recursive_get(self.alfa_template, "spec.update"):
-                            self.logger.info(
+                            logger.info(
                                 f'Not updating as update set to false {render["kind"]} {url}'
                             )
                             continue
 
                         if "PersistentVolumeClaim" == item_get.get("kind"):
-                            self.logger.info(
+                            logger.info(
                                 f'Not updating as PersistentVolumeClaim is immutable after creation {render["kind"]} {url}'
                             )
                             continue
@@ -178,8 +167,8 @@ class TemplateConsumer:
                             ]
 
                         try:
-                            self.logger.info(f'Updating {render["kind"]} {url}')
-                            self.logger.debug(f"HTTP PUT {url}: {json.dumps(render)}")
+                            logger.info(f'Updating {render["kind"]} {url}')
+                            logger.debug(f"HTTP PUT {url}: {json.dumps(render)}")
                             async with self.session.request(
                                 "put", url, json=render
                             ) as item_put_response:
@@ -191,7 +180,7 @@ class TemplateConsumer:
                                     404
                                 ]:
                                     item_post = await item_put_response.text()
-                                    self.logger.error(
+                                    logger.error(
                                         f"HTTP PUT {url} {item_put_response.status} {item_post}"
                                     )
                                     continue
@@ -200,7 +189,7 @@ class TemplateConsumer:
                                     item_put["kind"] == "Status"
                                     and item_put["status"] == "Failure"
                                 ):
-                                    self.logger.error(
+                                    logger.error(
                                         f'HTTP PUT {url} failed: {item_put["message"]} {json.dumps(item_put)}'
                                     )
                                     continue
@@ -219,18 +208,16 @@ class TemplateConsumer:
                                             "w",
                                         ) as outfile:
                                             yaml.dump(item_put, outfile)
-                                    self.logger.info(
+                                    logger.info(
                                         f'Updated {render["kind"]} {render["metadata"].get("namespace","cluster")}\\{render["metadata"]["name"]}, from resourceVersion {item_get["metadata"]["resourceVersion"]} to {item_put["metadata"]["resourceVersion"]}'
                                     )
                                 else:
-                                    self.logger.info(
+                                    logger.info(
                                         f'No change to {render["kind"]} {render["metadata"].get("namespace","cluster")}\\{render["metadata"]["name"]}, resourceVersion still {item_get["metadata"]["resourceVersion"]}'
                                     )
                         except Exception as e:
-                            self.logger.error(
-                                f'Error Updating {render["kind"]}: {repr(e)}'
-                            )
+                            logger.error(f'Error Updating {render["kind"]}: {repr(e)}')
                             continue
             except Exception as e:
-                self.logger.error(f"Error Getting Render: {repr(e)}")
+                logger.error(f"Error Getting Render: {repr(e)}")
                 continue

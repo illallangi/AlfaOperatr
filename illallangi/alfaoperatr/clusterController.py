@@ -4,14 +4,15 @@ from aiohttp import ClientSession
 
 from illallangi.k8sapi import API as K8S_API
 
+from loguru import logger
+
 from .clusterConsumer import ClusterConsumer
 from .config import Config
-from .log import Log
 from .producer import Producer
 
 
 class ClusterController:
-    def __init__(self, config, api, queue=None, session=None, logger=None):
+    def __init__(self, config, api, queue=None, session=None):
         if not isinstance(config, Config):
             raise TypeError("Expected Config; got %s" % type(config).__name__)
         if not isinstance(api, K8S_API):
@@ -21,17 +22,12 @@ class ClusterController:
         self.api = api
         self.session = ClientSession() if session is None else session
         self.queue = Queue() if queue is None else queue
-        self.logger = (
-            Log.get_logger("ClusterController()", self.config.log_level)
-            if logger is None
-            else logger
-        )
 
     async def loop(self):
-        self.logger.info("loop starting")
+        logger.info("loop starting")
         self.task = gather(*self.get_coroutines())
         await self.task
-        self.logger.info("loop completed")
+        logger.info("loop completed")
 
     def get_coroutines(self):
         yield ClusterConsumer(
@@ -50,8 +46,8 @@ class ClusterController:
 
     def __del__(self):
         if hasattr(self, "logger"):
-            self.logger.info("__del__ starting")
+            logger.info("__del__ starting")
         if hasattr(self, "task") and self.task is not None:
             self.task.cancel()
         if hasattr(self, "logger"):
-            self.logger.info("__del__ completed")
+            logger.info("__del__ completed")
