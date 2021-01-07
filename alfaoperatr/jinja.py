@@ -31,28 +31,37 @@ class AlfaJinja:
             extensions=[
                 "jinja2_ansible_filters.AnsibleCoreFiltersExtension",
                 "alfaoperatr.jinja.AlfaJinjaFiltersExtension",
-            ])
+            ],
+        )
         self.environment.tests["is_subset"] = is_subset
         self.environment.tests["is_superset"] = is_superset
-        self.logger = Log.get_logger(f'AlfaJinja({name})', self.config.log_level) if logger is None else logger
+        self.logger = (
+            Log.get_logger(f"AlfaJinja({name})", self.config.log_level)
+            if logger is None
+            else logger
+        )
 
     def render(self, template, **kwargs):
         try:
             jinja2_template = self.environment.from_string(source=template)
         except jinja2.TemplateSyntaxError as e:
-            self.logger.error(f'Template Syntax Error Loading Template: {e}:{e.lineno})')
+            self.logger.error(
+                f"Template Syntax Error Loading Template: {e}:{e.lineno})"
+            )
             return None
         except Exception as e:
-            self.logger.error(f'Unknown Exception Loading Template: {repr(e)}')
+            self.logger.error(f"Unknown Exception Loading Template: {repr(e)}")
             return None
 
         try:
             jinja2_result = jinja2_template.render(**kwargs)
         except jinja2.TemplateSyntaxError as e:
-            self.logger.error(f'Template Syntax Error Rendering Template: {e}:{e.lineno})')
+            self.logger.error(
+                f"Template Syntax Error Rendering Template: {e}:{e.lineno})"
+            )
             return None
         except Exception as e:
-            self.logger.error(f'Unknown Exception Rendering Template: {repr(e)}')
+            self.logger.error(f"Unknown Exception Rendering Template: {repr(e)}")
             return None
 
         return jinja2_result.strip()
@@ -77,20 +86,18 @@ class AlfaJinjaFiltersExtension(Extension):
 
 def by_labels(input, namespace, *labels, min=None):
     if not isinstance(namespace, str):
-        raise TypeError('namespace must be specified and string')
+        raise TypeError("namespace must be specified and string")
     f = reduce(merge, labels)
-    kind = input[0]['kind']
+    kind = input[0]["kind"]
     input = [
-        i
-        for i in input
-        if i.get('metadata', {}).get('namespace', '') == namespace
+        i for i in input if i.get("metadata", {}).get("namespace", "") == namespace
     ]
     result = None
     for k in f:
         result = [
             i
             for i in result or input
-            if i.get('metadata', {}).get('labels', {}).get(k, None) == f[k]
+            if i.get("metadata", {}).get("labels", {}).get(k, None) == f[k]
         ]
         if min and len(result) < min:
             raise LabelsFilteredInputBelowMinimumException(kind, input, k, f[k], min)
@@ -112,7 +119,9 @@ class LabelsFilteredInputBelowMinimumException(Exception):
         self.key = key
         self.value = value
         self.min = min
-        super().__init__(f'{self.key}=={self.value} filtered below {self.min} {self.kind}(s)')
+        super().__init__(
+            f"{self.key}=={self.value} filtered below {self.min} {self.kind}(s)"
+        )
 
     def __repr__(self):
         return f'{super().__repr__()}:\ninput:\n{json.dumps([{"namespace": x["metadata"]["namespace"], "name": x["metadata"]["name"], "labels": x["metadata"]["labels"]} for x in self.input], indent=True)}'
@@ -145,25 +154,35 @@ def b64decode(input):
 
 def ipaddr(value, action):
     if action == "revdns":
-        return IPAddress(value).reverse_dns.strip('.')
+        return IPAddress(value).reverse_dns.strip(".")
     raise NotImplementedError
 
 
 def json_query(input, f):
-    result = jmespath.search(f, input, options=jmespath.Options(custom_functions=CustomFunctions()))
+    result = jmespath.search(
+        f, input, options=jmespath.Options(custom_functions=CustomFunctions())
+    )
     return list(result)
 
 
 def json_query_one(input, f):
-    result = jmespath.search(f, input, options=jmespath.Options(custom_functions=CustomFunctions()))
+    result = jmespath.search(
+        f, input, options=jmespath.Options(custom_functions=CustomFunctions())
+    )
     if (0 if result is None else len(result)) != 1:
-        raise Exception(f'Incorrect number of items in iterable (expected 1, received {0 if result is None else len(result)} from {f} in {json.dumps(input)})')
+        raise Exception(
+            f"Incorrect number of items in iterable (expected 1, received {0 if result is None else len(result)} from {f} in {json.dumps(input)})"
+        )
     return one(result)
 
 
 def json_query_unique(input, f):
-    result = jmespath.search(f, input, options=jmespath.Options(custom_functions=CustomFunctions()))
-    return [yaml.load(y, Loader=yaml.FullLoader) for y in {yaml.dump(d) for d in result}]
+    result = jmespath.search(
+        f, input, options=jmespath.Options(custom_functions=CustomFunctions())
+    )
+    return [
+        yaml.load(y, Loader=yaml.FullLoader) for y in {yaml.dump(d) for d in result}
+    ]
 
 
 def unique_dict(input):
@@ -173,28 +192,30 @@ def unique_dict(input):
 # https://stackoverflow.com/posts/14023440/timeline#history_4c28e0a3-82ef-4080-9c59-11a95a097fee
 # cc by-sa 3.0
 def cheap_hash(string, length=6):
-    if length < len(sha256(string.encode('utf-8')).hexdigest()):
-        return sha256(string.encode('utf-8')).hexdigest()[:length]
+    if length < len(sha256(string.encode("utf-8")).hexdigest()):
+        return sha256(string.encode("utf-8")).hexdigest()[:length]
     else:
-        raise Exception("Length too long. Length of {y} when hash length is {x}.".format(x=str(len(sha256(string.encode('utf-8')).hexdigest())), y=length))
+        raise Exception(
+            "Length too long. Length of {y} when hash length is {x}.".format(
+                x=str(len(sha256(string.encode("utf-8")).hexdigest())), y=length
+            )
+        )
 
 
 def path_join(input):
-    return os.path.join(input[0], *input[1:]).strip('/')
+    return os.path.join(input[0], *input[1:]).strip("/")
 
 
 def alfa_query(
-        input,
-        parent_kind,
-        child_kind,
-        child_group,
-        child_version,
-        spec_filter=None):
+    input, parent_kind, child_kind, child_group, child_version, spec_filter=None
+):
     query = f"[?kind=='{parent_kind}']."
     if spec_filter is not None:
         query = f"[?kind=='{parent_kind}' && spec.{spec_filter} && [spec.{spec_filter}.count,`1`][?@]|[0] > `0`].[loop(@, spec.{spec_filter}.count)][][]."
 
-    query = query + f'''
+    query = (
+        query
+        + f"""
             {{
                 "apiVersion": '{child_group}/{child_version}',
                 "kind": '{child_kind}',
@@ -269,20 +290,22 @@ def alfa_query(
                 "spec": spec,
                 "__index": __index,
                 "__number": __number
-            }}'''
+            }}"""
+    )
     result = json_query(input, query)
     return result
 
 
 class CustomFunctions(functions.Functions):
-    @functions.signature({'types': ['object']}, {'types': ['null', 'number']})
+    @functions.signature({"types": ["object"]}, {"types": ["null", "number"]})
     def _func_loop(self, p, c):
         return [
             {
                 **p,
                 **{
-                    '__number': index,
-                    '__index': None if index is None else f'{index:02d}',
-                }
-            } for index in ([None] + list(range(0, c or 0)))
+                    "__number": index,
+                    "__index": None if index is None else f"{index:02d}",
+                },
+            }
+            for index in ([None] + list(range(0, c or 0)))
         ]

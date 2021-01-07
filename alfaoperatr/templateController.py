@@ -14,34 +14,46 @@ class TemplateController:
         self.config = config
         self.session = ClientSession()  # if session is None else session
         self.queue = Queue() if queue is None else queue
-        self.logger = Log.get_logger(f'TemplateController({alfa_template["metadata"]["name"]})', self.config.log_level) if logger is None else logger
+        self.logger = (
+            Log.get_logger(
+                f'TemplateController({alfa_template["metadata"]["name"]})',
+                self.config.log_level,
+            )
+            if logger is None
+            else logger
+        )
 
     async def loop(self):
-        self.logger.info('loop starting')
+        self.logger.info("loop starting")
         self.task = gather(*self.get_coroutines())
         await self.task
-        self.logger.info('loop completed')
+        self.logger.info("loop completed")
 
     def get_coroutines(self):
         yield TemplateConsumer(
             self.alfa_template,
             session=self.session,
             queue=self.queue,
-            config=self.config).loop()
+            config=self.config,
+        ).loop()
 
         for kind in [
-            *[recursive_get(self.alfa_template, 'spec.kinds.parent.kind')],
-            *[kind['kind'] for kind in recursive_get(self.alfa_template, 'spec.kinds.monitored')]
+            *[recursive_get(self.alfa_template, "spec.kinds.parent.kind")],
+            *[
+                kind["kind"]
+                for kind in recursive_get(self.alfa_template, "spec.kinds.monitored")
+            ],
         ]:
             yield Producer(
                 kind=kind,
                 resource_version=None,
                 session=self.session,
                 queue=self.queue,
-                config=self.config).loop()
+                config=self.config,
+            ).loop()
 
     def __del__(self):
-        self.logger.info('__del__ starting')
+        self.logger.info("__del__ starting")
         if not get_event_loop().is_closed() and self.task is not None:
             self.task.cancel()
-        self.logger.info('__del__ completed')
+        self.logger.info("__del__ completed")

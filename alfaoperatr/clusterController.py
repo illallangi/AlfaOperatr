@@ -12,19 +12,22 @@ class ClusterController:
         self.config = config
         self.session = ClientSession() if session is None else session
         self.queue = Queue() if queue is None else queue
-        self.logger = Log.get_logger('ClusterController()', self.config.log_level) if logger is None else logger
+        self.logger = (
+            Log.get_logger("ClusterController()", self.config.log_level)
+            if logger is None
+            else logger
+        )
 
     async def loop(self):
-        self.logger.info('loop starting')
+        self.logger.info("loop starting")
         self.task = gather(*self.get_coroutines())
         await self.task
-        self.logger.info('loop completed')
+        self.logger.info("loop completed")
 
     def get_coroutines(self):
         yield ClusterConsumer(
-            session=self.session,
-            queue=self.queue,
-            config=self.config).loop()
+            session=self.session, queue=self.queue, config=self.config
+        ).loop()
 
         for kind in ["AlfaTemplate"]:
             yield Producer(
@@ -32,12 +35,13 @@ class ClusterController:
                 resource_version=None,
                 session=self.session,
                 queue=self.queue,
-                config=self.config).loop()
+                config=self.config,
+            ).loop()
 
     def __del__(self):
         if hasattr(self, "logger"):
-            self.logger.info('__del__ starting')
+            self.logger.info("__del__ starting")
         if hasattr(self, "task") and self.task is not None:
             self.task.cancel()
         if hasattr(self, "logger"):
-            self.logger.info('__del__ completed')
+            self.logger.info("__del__ completed")

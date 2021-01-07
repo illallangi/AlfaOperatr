@@ -19,11 +19,11 @@ def formatter_message(message, use_color=True):
 
 
 COLORS = {
-    'ERROR': RED,
-    'CRITICAL': YELLOW,
-    'WARNING': YELLOW,
-    'INFO': WHITE,
-    'DEBUG': BLUE
+    "ERROR": RED,
+    "CRITICAL": YELLOW,
+    "WARNING": YELLOW,
+    "INFO": WHITE,
+    "DEBUG": BLUE,
 }
 
 
@@ -35,7 +35,9 @@ class ColoredFormatter(logging.Formatter):
     def format(self, record):
         levelname = record.levelname
         if self.use_color and levelname in COLORS:
-            levelname_color = COLOR_SEQ % (30 + COLORS[levelname]) + levelname + RESET_SEQ
+            levelname_color = (
+                COLOR_SEQ % (30 + COLORS[levelname]) + levelname + RESET_SEQ
+            )
             record.levelname = levelname_color
         return logging.Formatter.format(self, record)
 
@@ -57,8 +59,8 @@ class ColoredLogger(logging.Logger):
         return
 
 
-logging.getLogger('apscheduler').setLevel(logging.ERROR)
-logging.getLogger('urllib3.connectionpool').setLevel(logging.ERROR)
+logging.getLogger("apscheduler").setLevel(logging.ERROR)
+logging.getLogger("urllib3.connectionpool").setLevel(logging.ERROR)
 loggers = {}
 logging.setLoggerClass(ColoredLogger)
 

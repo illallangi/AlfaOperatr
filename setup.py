@@ -18,9 +18,9 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires=">=3.6",
     entry_points={
-        'console_scripts': ['alfaoperatr=alfaoperatr:__main__.main'],
+        "console_scripts": ["alfaoperatr=alfaoperatr:__main__.main"],
     },
     install_requires=[
         "Click",
@@ -32,6 +32,6 @@ setuptools.setup(
         "netaddr",
         "pyyaml",
         "requests",
-        "six"
-    ]
+        "six",
+    ],
 )

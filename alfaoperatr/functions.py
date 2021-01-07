@@ -11,7 +11,9 @@ def merge(original, patch):
     "merges patch into a"
     result = {}
     for key in {*original.keys(), *patch.keys()}:
-        if isinstance(original.get(key, None), dict) and isinstance(patch.get(key, None), dict):
+        if isinstance(original.get(key, None), dict) and isinstance(
+            patch.get(key, None), dict
+        ):
             result[key] = merge(original[key], patch[key])
         else:
             if key in original:
@@ -43,12 +45,8 @@ def unique_dict(input):
 
 
 # https://stackoverflow.com/a/28225747
-def recursive_get(d, *keys, default=None, sep='.'):
-    keys = [
-        k
-        for key in keys
-        for k in key.split(sep)
-    ]
+def recursive_get(d, *keys, default=None, sep="."):
+    keys = [k for key in keys for k in key.split(sep)]
     result = reduce(lambda c, k: c.get(k, {}) if isinstance(c, dict) else {}, keys, d)
     if result == {}:
         return default
@@ -58,12 +56,16 @@ def recursive_get(d, *keys, default=None, sep='.'):
 # https://stackoverflow.com/posts/14023440/timeline#history_4c28e0a3-82ef-4080-9c59-11a95a097fee
 # cc by-sa 3.0
 def cheap_hash(string, length=6, default=None):
-    if string is None or string == '':
+    if string is None or string == "":
         return default
-    if length < len(sha256(string.encode('utf-8')).hexdigest()):
-        return sha256(string.encode('utf-8')).hexdigest()[:length]
+    if length < len(sha256(string.encode("utf-8")).hexdigest()):
+        return sha256(string.encode("utf-8")).hexdigest()[:length]
     else:
-        raise Exception("Length too long. Length of {y} when hash length is {x}.".format(x=str(len(sha256(string.encode('utf-8')).hexdigest())), y=length))
+        raise Exception(
+            "Length too long. Length of {y} when hash length is {x}.".format(
+                x=str(len(sha256(string.encode("utf-8")).hexdigest())), y=length
+            )
+        )
 
 
 # Get around pyyaml removing leading 0s
