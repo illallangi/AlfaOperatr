@@ -21,12 +21,16 @@ from .config import Config
         case_sensitive=False,
     ),
     default="INFO",
-    envvar="LOGLEVEL",
+    envvar="LOG_LEVEL",
 )
 @option("--slack-username", type=STRING, envvar="SLACK_USERNAME", default=__name__)
 @option("--slack-webhook", type=STRING, envvar="SLACK_WEBHOOK", default=None)
 @option("--slack-format", type=STRING, envvar="SLACK_FORMAT", default="{message}")
-@argument("parent", required=True)
+@option(
+    "--parent",
+    required=True,
+    envvar="ALFA_PARENT",
+)
 @option(
     "--debug-path",
     default=None,
@@ -40,13 +44,14 @@ from .config import Config
         resolve_path=True,
         allow_dash=False,
     ),
+    envvar="ALFA_DEBUG_PATH",
 )
 @option(
     "--api-proxy",
     default="http://localhost:8001",
     show_default=False,
     type=STRING,
-    envvar="PROXY",
+    envvar="ALFA_API_PROXY",
 )
 def cli(
     log_level,
