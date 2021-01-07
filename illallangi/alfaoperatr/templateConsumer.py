@@ -16,6 +16,8 @@ from .config import Config
 from .functions import recursive_get
 from .templateRenderer import TemplateRenderer
 
+COOLDOWN = 5
+
 
 class TemplateConsumer:
     def __init__(self, alfa_template, config, api, session=None, queue=None):
@@ -34,10 +36,8 @@ class TemplateConsumer:
         while True:
             logger.debug("Sleeping until next event")
             await self.queue.get()
-            logger.info(
-                f"Consumer awaiting cooldown for {self.config.cooldown} seconds"
-            )
-            await sleep(self.config.cooldown)
+            logger.info(f"Consumer awaiting cooldown for {COOLDOWN} seconds")
+            await sleep(COOLDOWN)
             while not self.queue.empty():
                 self.queue.get_nowait()
             await self.consume()
@@ -49,7 +49,7 @@ class TemplateConsumer:
             self.api,
             self.session,
         ).render():
-            if render is None or "kind" not in render or self.config.dry_run:
+            if render is None or "kind" not in render:
                 continue
             try:
                 url = URL(

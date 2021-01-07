@@ -35,25 +35,9 @@ class ClusterConsumer:
 
     async def consume(self, event):
         logger.debug(f"Received event {dumps(event)}")
-        if not self.config.app_filter.match(
-            event["object"]["metadata"]
-            .get("labels", {})
-            .get("app.kubernetes.io/name", "")
-        ):
-            logger.info(
-                f'Ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]}) - Filtered by app filter {self.config.app_filter}'
-            )
-            return
-
         if not self.config.parent == event["object"]["spec"]["kinds"]["parent"]["kind"]:
             logger.info(
                 f'Ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]}) - Not a template for {self.config.parent}'
-            )
-            return
-
-        if not self.config.template_filter.match(event["object"]["metadata"]["name"]):
-            logger.info(
-                f'Ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]}) - Filtered by template filter {self.config.template_filter}'
             )
             return
 
