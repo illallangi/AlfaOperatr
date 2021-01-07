@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="alfaoperatr",
+    name="illallangi-alfaoperatr",
     version="0.0.1",
     author="Andrew Cole",
     author_email="andrew.cole@illallangi.com",
@@ -20,7 +20,7 @@ setuptools.setup(
     ],
     python_requires=">=3.6",
     entry_points={
-        "console_scripts": ["alfaoperatr=alfaoperatr:__main__.main"],
+        "console_scripts": ["alfaoperatr=illallangi.alfaoperatr:__main__.cli"],
     },
     install_requires=[
         "Click",

@@ -30,7 +30,7 @@ class AlfaJinja:
             lstrip_blocks=True,
             extensions=[
                 "jinja2_ansible_filters.AnsibleCoreFiltersExtension",
-                "alfaoperatr.jinja.AlfaJinjaFiltersExtension",
+                "illallangi.alfaoperatr.jinja.AlfaJinjaFiltersExtension",
             ],
         )
         self.environment.tests["is_subset"] = is_subset

@@ -1,6 +1,4 @@
 from collections.abc import Mapping
-
-# from difflib import get_close_matches
 from os import makedirs
 from re import Pattern, compile
 
