@@ -6,22 +6,29 @@ from illallangi.k8sapi import API as K8S_API
 
 from loguru import logger
 
+from yarl import URL
+
 from .clusterConsumer import ClusterConsumer
-from .config import Config
 from .producer import Producer
 
 
 class ClusterController:
-    def __init__(self, config, api, queue=None, session=None):
-        if not isinstance(config, Config):
-            raise TypeError("Expected Config; got %s" % type(config).__name__)
-        if not isinstance(api, K8S_API):
-            raise TypeError("Expected API; got %s" % type(api).__name__)
-
-        self.config = config
-        self.api = api
+    def __init__(self, api, dump, parent, session=None, queue=None):
+        self.api = (
+            K8S_API(URL(api) if not isinstance(api, URL) else api)
+            if not isinstance(api, K8S_API)
+            else api
+        )
+        self.dump = dump
+        self.parent = parent
         self.session = ClientSession() if session is None else session
+        if not isinstance(self.session, ClientSession):
+            raise TypeError(
+                "Expected ClientSession; got %s" % type(self.session).__name__
+            )
         self.queue = Queue() if queue is None else queue
+        if not isinstance(self.queue, Queue):
+            raise TypeError("Expected Queue; got %s" % type(self.queue).__name__)
 
     async def loop(self):
         logger.info("loop starting")
@@ -31,17 +38,20 @@ class ClusterController:
 
     def get_coroutines(self):
         yield ClusterConsumer(
-            session=self.session, queue=self.queue, config=self.config, api=self.api
+            api=self.api,
+            dump=self.dump,
+            parent=self.parent,
+            session=self.session,
+            queue=self.queue,
         ).loop()
 
         for kind in ["AlfaTemplate"]:
             yield Producer(
+                api=self.api,
                 kind=kind,
                 resource_version=None,
                 session=self.session,
                 queue=self.queue,
-                config=self.config,
-                api=self.api,
             ).loop()
 
     def __del__(self):

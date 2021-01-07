@@ -7,21 +7,28 @@ from illallangi.k8sapi import API as K8S_API
 
 from loguru import logger
 
-from .config import Config
+from yarl import URL
+
 from .templateController import TemplateController
 
 
 class ClusterConsumer:
-    def __init__(self, config, api, session=None, queue=None):
-        if not isinstance(config, Config):
-            raise TypeError("Expected Config; got %s" % type(config).__name__)
-        if not isinstance(api, K8S_API):
-            raise TypeError("Expected API; got %s" % type(api).__name__)
-
-        self.config = config
-        self.api = api
+    def __init__(self, api, dump, parent, session=None, queue=None):
+        self.api = (
+            K8S_API(URL(api) if not isinstance(api, URL) else api)
+            if not isinstance(api, K8S_API)
+            else api
+        )
+        self.dump = dump
+        self.parent = parent
         self.session = ClientSession() if session is None else session
+        if not isinstance(self.session, ClientSession):
+            raise TypeError(
+                "Expected ClientSession; got %s" % type(self.session).__name__
+            )
         self.queue = Queue() if queue is None else queue
+        if not isinstance(self.queue, Queue):
+            raise TypeError("Expected Queue; got %s" % type(self.queue).__name__)
         self.controllers = {}
 
     async def loop(self):
@@ -35,9 +42,9 @@ class ClusterConsumer:
 
     async def consume(self, event):
         logger.debug(f"Received event {dumps(event)}")
-        if not self.config.parent == event["object"]["spec"]["kinds"]["parent"]["kind"]:
+        if not self.parent == event["object"]["spec"]["kinds"]["parent"]["kind"]:
             logger.info(
-                f'Ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]}) - Not a template for {self.config.parent}'
+                f'Ignoring {event["object"]["metadata"]["name"]} {event["type"].lower()} (resourceVersion {event["object"]["metadata"]["resourceVersion"]}) - Not a template for {self.parent}'
             )
             return
 
@@ -56,7 +63,10 @@ class ClusterConsumer:
                 f'creating new TemplateController({event["object"]["metadata"]["name"]})'
             )
             controller = TemplateController(
-                event["object"], session=self.session, config=self.config, api=self.api
+                api=self.api,
+                dump=self.dump,
+                alfa_template=event["object"],
+                session=self.session,
             )
             get_event_loop().create_task(controller.loop())
             self.controllers[event["object"]["metadata"]["name"]] = controller

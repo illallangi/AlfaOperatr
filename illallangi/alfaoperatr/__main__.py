@@ -1,16 +1,13 @@
 from asyncio import ensure_future, get_event_loop
 from sys import stderr
 
-from click import Choice as CHOICE, Path as PATH, STRING, argument, command, option
-
-from illallangi.k8sapi import API as K8S_API
+from click import Choice as CHOICE, Path as PATH, STRING, command, option
 
 from loguru import logger
 
 from notifiers.logging import NotificationHandler
 
 from .clusterController import ClusterController
-from .config import Config
 
 
 @command()
@@ -32,7 +29,7 @@ from .config import Config
     envvar="ALFA_PARENT",
 )
 @option(
-    "--debug-path",
+    "--dump",
     default=None,
     show_default=False,
     type=PATH(
@@ -44,23 +41,23 @@ from .config import Config
         resolve_path=True,
         allow_dash=False,
     ),
-    envvar="ALFA_DEBUG_PATH",
+    envvar="ALFA_DUMP",
 )
 @option(
-    "--api-proxy",
+    "--api",
     default="http://localhost:8001",
     show_default=False,
     type=STRING,
-    envvar="ALFA_API_PROXY",
+    envvar="ALFA_API",
 )
 def cli(
     log_level,
     slack_username,
     slack_webhook,
     slack_format,
+    api,
+    dump,
     parent,
-    debug_path,
-    api_proxy,
 ):
     logger.remove()
     logger.add(stderr, level=log_level)
@@ -69,14 +66,7 @@ def cli(
         slack = NotificationHandler("slack", defaults=params)
         logger.add(slack, format=slack_format, level="SUCCESS")
 
-    config = Config(
-        parent=parent,
-        debug_path=debug_path,
-    )
-
-    api = K8S_API(api_proxy)
-
-    controller = ClusterController(config, api)
+    controller = ClusterController(api, dump, parent)
 
     get_event_loop().run_until_complete(ensure_future(controller.loop()))
 

@@ -22,9 +22,8 @@ from .functions import merge
 
 
 class AlfaJinja:
-    def __init__(self, name, config):
+    def __init__(self, name):
         self.name = name
-        self.config = config
         self.environment = jinja2.Environment(
             loader=jinja2.BaseLoader,
             trim_blocks=True,

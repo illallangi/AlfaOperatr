@@ -10,36 +10,37 @@ from loguru import logger
 
 from yarl import URL
 
-from .config import Config
-
 
 class Producer:
     def __init__(
         self,
-        kind,
-        config,
         api,
-        session=None,
+        kind,
         resource_version=None,
+        session=None,
         queue=None,
     ):
-        if not isinstance(config, Config):
-            raise TypeError("Expected Config; got %s" % type(config).__name__)
-        if not isinstance(api, K8S_API):
-            raise TypeError("Expected API; got %s" % type(api).__name__)
-
+        self.api = (
+            K8S_API(URL(api) if not isinstance(api, URL) else api)
+            if not isinstance(api, K8S_API)
+            else api
+        )
         self.kind = kind
-        self.config = config
-        self.api = api
-        self.resource_version = resource_version
+        self.resource_version = resource_version or 0
         self.session = ClientSession() if session is None else session
+        if not isinstance(self.session, ClientSession):
+            raise TypeError(
+                "Expected ClientSession; got %s" % type(self.session).__name__
+            )
         self.queue = Queue() if queue is None else queue
+        if not isinstance(self.queue, Queue):
+            raise TypeError("Expected Queue; got %s" % type(self.queue).__name__)
 
     async def loop(self):
         while True:
             try:
                 params = {"watch": 1}
-                if self.resource_version is not None:
+                if self.resource_version > 0:
                     params["resourceVersion"] = self.resource_version
                 async with self.session.request(
                     "get", self.api.kinds[self.kind].rest_path.with_query(**params)
@@ -55,8 +56,9 @@ class Producer:
                                 )
                                 continue
                             await self.handle_event(event)
-                            if int(event["object"]["metadata"]["resourceVersion"]) > (
-                                self.resource_version or 0
+                            if (
+                                int(event["object"]["metadata"]["resourceVersion"])
+                                > self.resource_version
                             ):
                                 self.resource_version = int(
                                     event["object"]["metadata"]["resourceVersion"]

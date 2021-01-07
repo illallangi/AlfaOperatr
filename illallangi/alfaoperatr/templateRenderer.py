@@ -13,23 +13,25 @@ import yaml
 
 from yarl import URL
 
-from .config import Config
 from .functions import cheap_hash, common, merge, recursive_get
 from .jinja import AlfaJinja
 
 
 class TemplateRenderer:
-    def __init__(self, name, config, api, session=None, jinja=None):
-        if not isinstance(config, Config):
-            raise TypeError("Expected Config; got %s" % type(config).__name__)
-        if not isinstance(api, K8S_API):
-            raise TypeError("Expected API; got %s" % type(api).__name__)
-
+    def __init__(self, api, dump, name, session=None, jinja=None):
+        self.api = (
+            K8S_API(URL(api) if not isinstance(api, URL) else api)
+            if not isinstance(api, K8S_API)
+            else api
+        )
+        self.dump = dump
         self.name = name
-        self.config = config
-        self.api = api
-        self.jinja = AlfaJinja(name, config) if jinja is None else jinja
+        self.jinja = AlfaJinja(name) if jinja is None else jinja
         self.session = ClientSession() if session is None else session
+        if not isinstance(self.session, ClientSession):
+            raise TypeError(
+                "Expected ClientSession; got %s" % type(self.session).__name__
+            )
 
     async def render(self):
         logger.info(f"Rendering AlfaTemplate {self.name} in {await self.scope} scope")
@@ -41,10 +43,10 @@ class TemplateRenderer:
             logger.info(f'Getting {"s, ".join(await self.kinds)}s')
             self._items = {k: await self.get_items(k) for k in await self.kinds}
             for k in self._items:
-                if self.config.debug_path:
+                if self.dump:
                     with open(
                         os.path.join(
-                            self.config.debug_path,
+                            self.dump,
                             f"alfatemplate-{self.name}-{k.lower()}s.yaml",
                         ),
                         "w",
@@ -148,11 +150,9 @@ class TemplateRenderer:
                 }
                 for item in (await self.items)[await self.parent_kind]
             ]
-            if self.config.debug_path:
+            if self.dump:
                 with open(
-                    os.path.join(
-                        self.config.debug_path, f"alfatemplate-{self.name}-objects.yaml"
-                    ),
+                    os.path.join(self.dump, f"alfatemplate-{self.name}-objects.yaml"),
                     "w",
                 ) as outfile:
                     outfile.write(yaml.dump_all(self._objects))
@@ -219,11 +219,9 @@ class TemplateRenderer:
                     for item in (await self.items)[await self.parent_kind]
                 }
             ]
-            if self.config.debug_path:
+            if self.dump:
                 with open(
-                    os.path.join(
-                        self.config.debug_path, f"alfatemplate-{self.name}-domains.yaml"
-                    ),
+                    os.path.join(self.dump, f"alfatemplate-{self.name}-domains.yaml"),
                     "w",
                 ) as outfile:
                     outfile.write(yaml.dump_all(self._domains))
@@ -294,10 +292,10 @@ class TemplateRenderer:
                     for item in (await self.items)[await self.parent_kind]
                 }
             ]
-            if self.config.debug_path:
+            if self.dump:
                 with open(
                     os.path.join(
-                        self.config.debug_path,
+                        self.dump,
                         f"alfatemplate-{self.name}-namespaces.yaml",
                     ),
                     "w",
@@ -324,10 +322,10 @@ class TemplateRenderer:
                     ],
                 )
             ]
-            if self.config.debug_path:
+            if self.dump:
                 with open(
                     os.path.join(
-                        self.config.debug_path,
+                        self.dump,
                         f"alfatemplate-{self.name}-clusters.yaml",
                     ),
                     "w",
@@ -429,11 +427,9 @@ class TemplateRenderer:
                     )
                 ]
             ]
-            if self.config.debug_path:
+            if self.dump:
                 with open(
-                    os.path.join(
-                        self.config.debug_path, f"alfatemplate-{self.name}-renders.yaml"
-                    ),
+                    os.path.join(self.dump, f"alfatemplate-{self.name}-renders.yaml"),
                     "w",
                 ) as outfile:
                     outfile.write(yaml.dump_all(self._renders))
@@ -508,10 +504,10 @@ class TemplateRenderer:
                 for t in await self.get_items("AlfaTemplate")
                 if t["metadata"]["name"] == self.name
             ]
-            if self.config.debug_path:
+            if self.dump:
                 with open(
                     os.path.join(
-                        self.config.debug_path,
+                        self.dump,
                         f"alfatemplate-{self.name}-template.yaml",
                     ),
                     "w",
