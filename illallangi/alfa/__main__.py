@@ -3,11 +3,11 @@ from sys import stderr
 
 from click import Choice as CHOICE, Path as PATH, STRING, command, option
 
+from illallangi.alfa.cluster import Controller
+
 from loguru import logger
 
 from notifiers.logging import NotificationHandler
-
-from .clusterController import ClusterController
 
 
 @command()
@@ -66,7 +66,7 @@ def cli(
         slack = NotificationHandler("slack", defaults=params)
         logger.add(slack, format=slack_format, level="SUCCESS")
 
-    controller = ClusterController(api, dump, parent)
+    controller = Controller(api, dump, parent)
 
     get_event_loop().run_until_complete(ensure_future(controller.loop()))
 

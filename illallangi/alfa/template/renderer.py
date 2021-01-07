@@ -3,6 +3,8 @@ from functools import reduce
 
 from aiohttp import ClientSession
 
+from illallangi.alfa.functions import cheap_hash, common, merge, recursive_get
+from illallangi.alfa.jinja import AlfaJinja
 from illallangi.k8sapi import API as K8S_API
 
 from loguru import logger
@@ -13,11 +15,8 @@ import yaml
 
 from yarl import URL
 
-from .functions import cheap_hash, common, merge, recursive_get
-from .jinja import AlfaJinja
 
-
-class TemplateRenderer:
+class Renderer:
     def __init__(self, api, dump, name, session=None, jinja=None):
         self.api = (
             K8S_API(URL(api) if not isinstance(api, URL) else api)

@@ -4,6 +4,7 @@ from asyncio import Queue, sleep
 
 from aiohttp import ClientSession
 
+from illallangi.alfa.functions import recursive_get
 from illallangi.k8sapi import API as K8S_API
 
 from loguru import logger
@@ -12,13 +13,12 @@ import yaml
 
 from yarl import URL
 
-from .functions import recursive_get
-from .templateRenderer import TemplateRenderer
+from .renderer import Renderer
 
 COOLDOWN = 5
 
 
-class TemplateConsumer:
+class Consumer:
     def __init__(self, api, dump, alfa_template, session=None, queue=None):
         self.api = (
             K8S_API(URL(api) if not isinstance(api, URL) else api)
@@ -47,7 +47,7 @@ class TemplateConsumer:
             await self.consume()
 
     async def consume(self):
-        for render in await TemplateRenderer(
+        for render in await Renderer(
             api=self.api,
             dump=self.dump,
             name=recursive_get(self.alfa_template, "metadata.name"),

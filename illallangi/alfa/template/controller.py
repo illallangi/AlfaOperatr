@@ -1,26 +1,27 @@
-from asyncio import Queue, gather
+from asyncio import Queue, gather, get_event_loop
 
 from aiohttp import ClientSession
 
+from illallangi.alfa import Producer
+from illallangi.alfa.functions import recursive_get
 from illallangi.k8sapi import API as K8S_API
 
 from loguru import logger
 
 from yarl import URL
 
-from .clusterConsumer import ClusterConsumer
-from .producer import Producer
+from .consumer import Consumer
 
 
-class ClusterController:
-    def __init__(self, api, dump, parent, session=None, queue=None):
+class Controller:
+    def __init__(self, api, dump, alfa_template, session=None, queue=None):
         self.api = (
             K8S_API(URL(api) if not isinstance(api, URL) else api)
             if not isinstance(api, K8S_API)
             else api
         )
         self.dump = dump
-        self.parent = parent
+        self.alfa_template = alfa_template
         self.session = ClientSession() if session is None else session
         if not isinstance(self.session, ClientSession):
             raise TypeError(
@@ -37,15 +38,21 @@ class ClusterController:
         logger.info("loop completed")
 
     def get_coroutines(self):
-        yield ClusterConsumer(
+        yield Consumer(
             api=self.api,
             dump=self.dump,
-            parent=self.parent,
+            alfa_template=self.alfa_template,
             session=self.session,
             queue=self.queue,
         ).loop()
 
-        for kind in ["AlfaTemplate"]:
+        for kind in [
+            *[recursive_get(self.alfa_template, "spec.kinds.parent.kind")],
+            *[
+                kind["kind"]
+                for kind in recursive_get(self.alfa_template, "spec.kinds.monitored")
+            ],
+        ]:
             yield Producer(
                 api=self.api,
                 kind=kind,
@@ -55,9 +62,7 @@ class ClusterController:
             ).loop()
 
     def __del__(self):
-        if hasattr(self, "logger"):
-            logger.info("__del__ starting")
-        if hasattr(self, "task") and self.task is not None:
+        logger.info("__del__ starting")
+        if not get_event_loop().is_closed() and self.task is not None:
             self.task.cancel()
-        if hasattr(self, "logger"):
-            logger.info("__del__ completed")
+        logger.info("__del__ completed")

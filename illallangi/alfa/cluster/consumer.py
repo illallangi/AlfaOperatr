@@ -3,16 +3,15 @@ from json import dumps
 
 from aiohttp import ClientSession
 
+from illallangi.alfa.template import Controller as TemplateController
 from illallangi.k8sapi import API as K8S_API
 
 from loguru import logger
 
 from yarl import URL
 
-from .templateController import TemplateController
 
-
-class ClusterConsumer:
+class Consumer:
     def __init__(self, api, dump, parent, session=None, queue=None):
         self.api = (
             K8S_API(URL(api) if not isinstance(api, URL) else api)

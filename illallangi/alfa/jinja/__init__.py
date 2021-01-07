@@ -4,6 +4,8 @@ import os
 from functools import reduce
 from hashlib import sha256
 
+from illallangi.alfa.functions import merge
+
 import jinja2
 from jinja2.ext import Extension
 
@@ -18,8 +20,6 @@ from netaddr import IPAddress
 
 import yaml
 
-from .functions import merge
-
 
 class AlfaJinja:
     def __init__(self, name):
@@ -30,7 +30,7 @@ class AlfaJinja:
             lstrip_blocks=True,
             extensions=[
                 "jinja2_ansible_filters.AnsibleCoreFiltersExtension",
-                "illallangi.alfaoperatr.jinja.AlfaJinjaFiltersExtension",
+                "illallangi.alfa.jinja.AlfaJinjaFiltersExtension",
             ],
         )
         self.environment.tests["is_subset"] = is_subset
