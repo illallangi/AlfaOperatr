@@ -238,7 +238,7 @@ class Consumer:
                                                             tofile=f'{item_put["metadata"].get("namespace","cluster")}-{item_put["metadata"]["name"]}-{item_put["kind"]}-{item_put["metadata"]["resourceVersion"]}.yaml',
                                                         )
                                                     ),
-                                                    "title": f' - Original (resourceVersion {item_get["metadata"]["resourceVersion"]})',
+                                                    "title": f' - Diff (resourceVersion {item_get["metadata"]["resourceVersion"]}) to (resourceVersion {item_put["metadata"]["resourceVersion"]})',
                                                 },
                                                 {
                                                     "filename": f'{item_get["metadata"].get("namespace","cluster")}-{item_get["metadata"]["name"]}-{item_get["kind"]}-{item_get["metadata"]["resourceVersion"]}.yaml',
