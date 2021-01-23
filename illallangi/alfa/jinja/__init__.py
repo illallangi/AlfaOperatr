@@ -42,6 +42,9 @@ class AlfaJinja:
         except jinja2.TemplateSyntaxError as e:
             logger.error(f"Template Syntax Error Loading Template: {e}:{e.lineno})")
             return None
+        except LabelsFilteredInputBelowMinimumException as e:
+            logger.error(f"Filter Error Rendering Template: {e}:{e.lineno})")
+            return None
         except Exception as e:
             logger.error(f"Unknown Exception Loading Template: {repr(e)}")
             return None
@@ -50,6 +53,9 @@ class AlfaJinja:
             jinja2_result = jinja2_template.render(**kwargs)
         except jinja2.TemplateSyntaxError as e:
             logger.error(f"Template Syntax Error Rendering Template: {e}:{e.lineno})")
+            return None
+        except LabelsFilteredInputBelowMinimumException as e:
+            logger.error(f"Filter Error Rendering Template: {e}:{e.lineno})")
             return None
         except Exception as e:
             logger.error(f"Unknown Exception Rendering Template: {repr(e)}")
