@@ -265,7 +265,7 @@ class Consumer:
                                                 }
                                             ],
                                         ):
-                                            logger.success(
+                                            logger.info(
                                                 f'no change, resourceVersion {item_put["metadata"]["resourceVersion"]}'
                                             )
                             except Exception as e:
